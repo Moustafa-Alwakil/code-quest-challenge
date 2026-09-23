@@ -18,8 +18,8 @@ final class RevenueSplit
     private const BPS_DENOMINATOR = 10_000;
 
     /**
-     * @param  int  $gross  recognized revenue in minor units
-     * @param  int  $shareBps  instructor share in basis points, 0...10000
+     * @param  int                   $gross    recognized revenue in minor units
+     * @param  int                   $shareBps instructor share in basis points, 0...10000
      * @return array{0: int, 1: int} [instructorPool, platformCut]; the two always sum to $gross
      */
     public static function split(int $gross, int $shareBps): array

@@ -23,7 +23,7 @@ final class CourseBuilder extends Builder
     }
 
     /**
-     * @param  Instructor|int  $instructor
+     * @param Instructor|int $instructor
      */
     public function forInstructor(mixed $instructor): self
     {

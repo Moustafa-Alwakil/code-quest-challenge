@@ -122,13 +122,6 @@ final readonly class Money
         );
     }
 
-    private function assertSameCurrency(self $other): void
-    {
-        if ($this->currency !== $other->currency) {
-            throw CurrencyMismatchException::between($this->currency, $other->currency);
-        }
-    }
-
     private static function normalizeCurrency(string $currency): string
     {
         $normalized = Str::upper(Str::trim($currency));
@@ -138,5 +131,12 @@ final readonly class Money
         }
 
         return $normalized;
+    }
+
+    private function assertSameCurrency(self $other): void
+    {
+        if ($this->currency !== $other->currency) {
+            throw CurrencyMismatchException::between($this->currency, $other->currency);
+        }
     }
 }

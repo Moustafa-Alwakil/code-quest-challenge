@@ -15,7 +15,7 @@ use Illuminate\Database\Seeder;
  * and again across instructors (D-5): EGP 300 over 1 month, EGP 800 over 3,
  * EGP 3 000 over 12 — none of which divide evenly.
  */
-class PlanSeeder extends Seeder
+final class PlanSeeder extends Seeder
 {
     public function run(): void
     {

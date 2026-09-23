@@ -31,12 +31,12 @@ final class Allocator
     private const MAX_WEIGHT = 1_000_000;
 
     /**
-     * @param  array<array-key, int>  $weights
+     * @param  array<array-key, int> $weights
      * @return array<array-key, int> every input key, in input order
      *
-     * @throws ZeroWeightException when every weight is zero
+     * @throws ZeroWeightException      when every weight is zero
      * @throws InvalidArgumentException on a negative total or weight
-     * @throws OverflowException when the guard bound is exceeded
+     * @throws OverflowException        when the guard bound is exceeded
      */
     public static function largestRemainder(int $total, array $weights): array
     {

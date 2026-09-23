@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 /**
  * @extends Factory<Plan>
  */
-class PlanFactory extends Factory
+final class PlanFactory extends Factory
 {
     /**
      * @return array<string, mixed>

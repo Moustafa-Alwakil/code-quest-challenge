@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 /**
  * @extends Factory<Instructor>
  */
-class InstructorFactory extends Factory
+final class InstructorFactory extends Factory
 {
     /**
      * @return array<string, mixed>

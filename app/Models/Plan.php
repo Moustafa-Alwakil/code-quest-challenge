@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Model;
  * splits it across `interval_months` periods with the largest-remainder
  * method, so the periods sum to the price exactly (D-1, D-5).
  */
-class Plan extends Model
+final class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */
     use HasFactory;

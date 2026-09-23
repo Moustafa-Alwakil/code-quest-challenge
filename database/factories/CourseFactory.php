@@ -12,14 +12,14 @@ use Illuminate\Support\Str;
 /**
  * @extends Factory<Course>
  */
-class CourseFactory extends Factory
+final class CourseFactory extends Factory
 {
     /**
      * @return array<string, mixed>
      */
     public function definition(): array
     {
-        $title = Str::title(fake()->unique()->catchPhrase());
+        $title = Str::title(mb_rtrim(fake()->unique()->sentence(4), '.'));
 
         return [
             'instructor_id' => Instructor::factory(),

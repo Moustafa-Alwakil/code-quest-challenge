@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * Instructors are not users: there is no instructor portal (PLAN section 20).
  */
-class Instructor extends Model
+final class Instructor extends Model
 {
     /** @use HasFactory<InstructorFactory> */
     use HasFactory;
@@ -36,6 +36,14 @@ class Instructor extends Model
     ];
 
     /**
+     * @return HasMany<Course, $this>
+     */
+    public function courses(): HasMany
+    {
+        return $this->hasMany(Course::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -43,13 +51,5 @@ class Instructor extends Model
         return [
             'status' => InstructorStatus::class,
         ];
-    }
-
-    /**
-     * @return HasMany<Course, $this>
-     */
-    public function courses(): HasMany
-    {
-        return $this->hasMany(Course::class);
     }
 }

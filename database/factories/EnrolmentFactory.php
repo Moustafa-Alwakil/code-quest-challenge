@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 /**
  * @extends Factory<Enrolment>
  */
-class EnrolmentFactory extends Factory
+final class EnrolmentFactory extends Factory
 {
     /**
      * @return array<string, mixed>

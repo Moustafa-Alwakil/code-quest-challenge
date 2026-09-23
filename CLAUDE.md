@@ -297,3 +297,17 @@ Forms\Components\Select::make('user_id')
 - Requires implementing `FilamentUser` contract for production access control.
 
 </laravel-boost-guidelines>
+
+<!-- Kept outside <laravel-boost-guidelines> on purpose: `boost:install` regenerates that block. -->
+
+# Static Analysis (Larastan)
+
+- After modifying any PHP file, run `vendor/bin/pint --dirty --format agent` first, then
+  `vendor/bin/phpstan analyse --no-progress`. Pint before PHPStan, so you analyse formatted code.
+- PHPStan runs at level 10 via Larastan, configured in `phpstan.neon`. Leave it clean before
+  reporting work as done — a level 10 error in money, allocation or ledger code is usually a real bug,
+  not a type annotation gap.
+- Fix the cause, not the symptom. Do not add `@phpstan-ignore` comments, baseline entries, inline
+  `@var` tags, casts, or widened parameter/return types for the sole purpose of silencing an error.
+- If clearing an error would require a design change, escalate to the `architect` agent instead of
+  suppressing it.

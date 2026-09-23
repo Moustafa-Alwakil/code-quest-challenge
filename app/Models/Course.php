@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A course belongs to exactly one instructor, which is what makes engagement
  * attributable to an instructor at recognition time (D-2).
  */
-class Course extends Model
+final class Course extends Model
 {
     /** @use HasFactory<CourseFactory> */
     use HasFactory;
@@ -31,16 +31,6 @@ class Course extends Model
     ];
 
     /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'published_at' => 'datetime',
-        ];
-    }
-
-    /**
      * @return BelongsTo<Instructor, $this>
      */
     public function instructor(): BelongsTo
@@ -54,5 +44,15 @@ class Course extends Model
     public function enrolments(): HasMany
     {
         return $this->hasMany(Enrolment::class);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'published_at' => 'datetime',
+        ];
     }
 }
