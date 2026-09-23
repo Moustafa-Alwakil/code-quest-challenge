@@ -77,7 +77,7 @@ Named in the brief; they carry the grade.
 
 ## Unit tests — no database
 
-`App\Support` is pure, so test it as pure. This is where the strongest statements live:
+`App\Support` does no I/O, so test it without one. This is where the strongest statements live:
 
 - `largestRemainder`: sum-equals-total for hand-picked cases **and** as a property test over
   hundreds of random `(total, weights)` pairs.
@@ -124,8 +124,9 @@ They carry no grade weight and must not consume time that belongs to the ledger 
 `tests/Feature/ArchTest.php`. These are what make `.ai/rules` enforceable rather than advisory.
 
 ```php
-arch('support is pure')
-    ->expect('App\Support')->not->toUse('Illuminate');
+arch('support does not reach for state')
+    ->expect('App\Support')
+    ->not->toUse(['config', 'now', 'Illuminate\Support\Facades\DB', 'App\Models']);
 
 arch('actions are final invokable use cases')
     ->expect('App\Actions')->toBeFinal()

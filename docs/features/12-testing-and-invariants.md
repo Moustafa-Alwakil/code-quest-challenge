@@ -59,7 +59,7 @@ advisory — a violation is a red test, not a code-review opinion. Written on Da
 
 **Purity and queueing**
 
-- `App\Support` (Money, Allocator, RevenueSplit) does not use `Illuminate`
+- `App\Support` (Money, Allocator, RevenueSplit) does no I/O: no `DB`, no `config`, no clock, no models
 - Livewire components, controllers and Filament resources do not use `DB` or `LedgerEntry`
   directly — money moves only through Actions
 - Jobs implement `ShouldQueue`

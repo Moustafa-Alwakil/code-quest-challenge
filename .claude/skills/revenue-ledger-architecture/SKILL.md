@@ -37,8 +37,9 @@ Entry point            Livewire component · Artisan command · queued job · Fi
    Model               relationships, casts, scopes
 ```
 
-`App\Support` (`Money`, `Allocator`, `RevenueSplit`) sits beside the chain: pure functions any
-layer may call, with no framework and no I/O.
+`App\Support` (`Money`, `Allocator`, `RevenueSplit`) sits beside the chain: deterministic functions
+any layer may call, with no I/O. It is ordinary Laravel code — use `Illuminate\Support\Str` and
+`Number` there in preference to native string and number functions, as everywhere else in `app/`.
 
 Full responsibilities, worked examples and the anti-patterns each layer attracts:
 **`references/layering.md`**.

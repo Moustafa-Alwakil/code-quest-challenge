@@ -48,7 +48,7 @@ Everything tunable lives in `config/revenue.php`, never as a literal in a Servic
 
 Read config at the entry point or in the DTO's named constructor, and pass the values inward. An
 Action that reads `config()` itself is harder to test across policy values, and `App\Support` must
-never read config at all.
+never read config at all — that is what keeps it deterministic and property-testable.
 
 ## Zero engagement
 

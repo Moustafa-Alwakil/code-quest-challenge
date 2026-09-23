@@ -5,7 +5,7 @@
 
 ## Goal
 
-Pure, framework-free building blocks that make it impossible to lose or invent a piastre.
+I/O-free building blocks that make it impossible to lose or invent a piastre.
 Every other feature does money arithmetic through these — never inline.
 
 ## Scope
@@ -24,7 +24,9 @@ Every other feature does money arithmetic through these — never inline.
 | `App\Support\RevenueSplit::split(gross, shareBps)` | Returns `[instructorPool, platformCut]`. Pool is floored; platform absorbs the sub-unit. |
 | `config/revenue.php` | `instructor_share_bps`, `hold_days`, `minimum_payout_minor`, `zero_engagement_policy`, `currency`, `payout_provider`, `charge_provider`, provider probabilities. Every policy decision in the plan is a visible dial here. |
 
-None of the three classes imports anything from `Illuminate\` — enforced by an arch test (F12).
+The three classes use `Illuminate\Support\Str` and `Number` in preference to native string and
+number functions, like the rest of `app/`. What an arch test does enforce (F12) is that they do no
+I/O — no database, no config, no clock — which is what keeps them property-testable.
 
 ## Rules
 

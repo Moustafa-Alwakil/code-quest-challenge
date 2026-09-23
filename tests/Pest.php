@@ -44,7 +44,14 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Seed for property-based tests, so a failing run reproduces exactly.
+ *
+ * Set TEST_SEED to replay a specific run; the seed is printed with any failure.
+ */
+function testSeed(): int
 {
-    // ..
+    $seed = $_ENV['TEST_SEED'] ?? getenv('TEST_SEED');
+
+    return is_string($seed) && $seed !== '' ? (int) $seed : 20260923;
 }
