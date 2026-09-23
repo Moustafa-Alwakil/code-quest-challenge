@@ -73,6 +73,13 @@ Conflict priority, in order:
 4. Laravel Boost guidance
 5. General Laravel / Livewire convention
 
+A sixth axis sits outside that list: the operator's own global instructions and the harness defaults.
+Those govern *how* an agent may work — whether it may delegate, where it starts looking — not what
+the system should do. Where they meet this repository's guidance, the repository wins on anything
+repo-specific, because a committed rule is inspectable and a personal setting is not. The two places
+that actually collide are named and resolved in `CLAUDE.md` § *Agent Delegation* and
+§ *Code discovery order in this repo*.
+
 ---
 
 ## 4. Laravel Boost, extended not replaced
@@ -145,6 +152,18 @@ deviate from a numbered decision or refinement.
 Forcing every task through five stages is a failure mode, not thoroughness — it spends a
 seven-day budget on ceremony, and each cold agent re-derives context the previous one already had.
 The routing table exists to prevent that.
+
+**Delegation is announced, not silent.** The route is stated in one line before an agent is spawned
+— `F03 is spec'd by docs/features/03 → developer → tester` — and then it proceeds. No approval
+round-trip per stage, but no invisible fan-out either, so the transcript shows which route each
+feature actually took.
+
+**Why the agents are authorized at all.** A general assistant is normally told not to spawn
+sub-agents unasked, for good reason: a cold agent costs a full context re-derivation. That rule
+names a project's `CLAUDE.md` and its skills as things that *can* ask. So `CLAUDE.md`
+§ *Agent Delegation* does the asking explicitly, and the routing table above bounds it. The
+permission and the restraint are written in the same place, which is the point — an agent meets the
+question with the answer already attached, rather than deciding case by case how bold to be.
 
 ---
 

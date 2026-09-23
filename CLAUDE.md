@@ -311,3 +311,30 @@ Forms\Components\Select::make('user_id')
   `@var` tags, casts, or widened parameter/return types for the sole purpose of silencing an error.
 - If clearing an error would require a design change, escalate to the `architect` agent instead of
   suppressing it.
+
+# Agent Delegation
+
+- This project's `.claude/agents/` (`researcher`, `architect`, `developer`, `tester`) and its
+  `agent-workflow` skill **are** the authorization to use the Agent tool here. Routing work to them
+  per that skill needs no separate request; spawning anything else still does.
+- **Announce, then proceed.** Name the route in one line before spawning — `F03 is spec'd by
+  docs/features/03 → developer → tester` — then go. Do not wait for a reply.
+- The routing table in `.claude/skills/agent-workflow/SKILL.md` is the single source of truth for
+  which stages a task needs. Read it rather than guessing. Its first row is the one most often got
+  wrong: a rename, a typo, one more assertion, a copy change, a config value → **do it yourself,
+  no agent.** Running every task through the full chain is the failure mode that skill exists to
+  prevent.
+- Escalations named elsewhere in this file — such as taking a PHPStan error that needs a design
+  change to the `architect` — resolve through that same table.
+
+## Code discovery order in this repo
+
+1. The `docs/features/NN-*.md` file for the work, then `docs/PLAN.md` and the `R-n` refinements in
+   `docs/features/README.md`.
+2. `.ai/rules/index.md`, then every rule file whose globs cover the paths in scope.
+3. Existing sibling code — an established pattern beats a better idea.
+4. `jbcontext search` for code none of the above locates.
+
+This order overrides any global instruction to open with a `context-explorer` sub-agent. Use
+`context-explorer` only when the target is genuinely unlocated after the steps above — on a
+specified feature it re-derives what the feature file already names.
