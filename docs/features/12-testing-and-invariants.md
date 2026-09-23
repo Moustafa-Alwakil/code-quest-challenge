@@ -54,10 +54,28 @@ This is the one test that cannot pass by accident. Show it on camera.
 
 ## Arch tests (Pest `arch()`)
 
+`tests/Feature/ArchTest.php`. These are what make the layering (R13–R16) enforceable rather than
+advisory — a violation is a red test, not a code-review opinion. Written on Day 1 alongside F01.
+
+**Purity and queueing**
+
 - `App\Support` (Money, Allocator, RevenueSplit) does not use `Illuminate`
 - Livewire components, controllers and Filament resources do not use `DB` or `LedgerEntry`
   directly — money moves only through Actions
 - Jobs implement `ShouldQueue`
+
+**Layering (R16)**
+
+| Rule | Assertion |
+|---|---|
+| Actions are use cases | `App\Actions` is final, has the `Action` suffix, exposes `__invoke` |
+| Actions do not query | `App\Actions` does not use `App\Models` or the query builder (`DB::transaction` excepted) |
+| DTOs are contracts | `App\DTOs` is `final readonly`; does not use `App\Models` or `Illuminate` |
+| Services own persistence | `App\Models` is used only in `App\Services`, `App\Models` and `Database` |
+| Entry points go through Actions | `App\Livewire` and `App\Console\Commands` do not use `App\Services` |
+
+When an arch test fails, the code is wrong. Relaxing the test is an architecture decision, not a
+fix — it goes through the Architect and is recorded as an `R-n` refinement.
 
 ## Required-proof map
 

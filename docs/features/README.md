@@ -73,6 +73,19 @@ refinements live in the feature files and are collected here so `ARCHITECTURE.md
 | R11 | Concurrency tests cannot use transaction-wrapped `RefreshDatabase` | F12 | The second connection can't see uncommitted rows, so the race never happens |
 | R12 | Status-first on job retry; `not_found` grace window before resending | F07, F08 | Robust against providers with weaker dedup or lagging status APIs |
 
+### Architecture & workflow refinements (Day 0)
+
+Recorded when the AI development environment was defined. These change *how* the code is written,
+not what it does.
+
+| # | Refinement | Where | Why |
+|---|---|---|---|
+| R13 | Action classes carry the `Action` suffix: `RecognizeAccrualPeriodAction`, `ReserveInstructorBalanceAction`, `StartCheckoutAction`. The unsuffixed names used throughout F04–F11 all gain it | all features | One unambiguous name per layer; an arch test can assert it. `PLAN.md` §15's list reads with the suffix |
+| R14 | Two new layers between the entry point and the models: `app/DTOs/**` (`final readonly` input contracts) and `app/Services/**` (the only place Eloquent and `DB` are touched). Actions orchestrate a use case and own the transaction boundary; they never query | all features | Keeps PLAN §12's keyset pagination, chunked `insertOrIgnore` and atomic increments out of the use-case layer, and makes every Action unit-testable against a faked Service. Services are grouped per aggregate (~6–8), never one per Action |
+| R15 | The entry point is generalized: **Livewire component · Artisan command · queued job · Filament page → DTO → Action → Service → Model.** Commands and jobs are held to the same contract as a component; jobs carry scalar ids and rebuild the DTO in `handle()` | F05–F09 (commands/jobs), F10, F11 | Most of the graded surface enters through commands and jobs, not Livewire. A Livewire-only rule would govern only F11 — which is discretionary and may be cut |
+| R16 | Arch tests enforce the layering, extending the three already listed in F12 | F12 | Turns the layering from advice into a red test. Listed in full in F12 |
+| R17 | The AI development environment — `.ai/rules/`, `.claude/skills/`, `.claude/agents/`, `CLAUDE.md`, `boost.json` — is committed, not gitignored | F13 | It is the evidence behind `docs/AI_USAGE.md` and the AI-transparency segment of the video. See `../AI_WORKFLOW.md` |
+
 ## Definition of done — every feature
 
 - [ ] Migrations include every constraint the feature lists
