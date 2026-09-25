@@ -55,3 +55,82 @@ arch('exceptions are named as exceptions')
 arch('debugging helpers never ship')
     ->expect(['dd', 'dump', 'ray', 'var_dump', 'die'])
     ->not->toBeUsed();
+
+/*
+|--------------------------------------------------------------------------
+| Layering (R16)
+|--------------------------------------------------------------------------
+|
+| Added as F03 creates App\Actions, App\DTOs, App\Services and
+| App\Console\Commands. App\Livewire, App\Jobs and App\Filament get their rules
+| when those namespaces gain classes — arch() errors on an empty namespace.
+|
+*/
+
+arch('actions are final invokable use cases')
+    ->expect('App\Actions')
+    ->toBeFinal()
+    ->toHaveSuffix('Action')
+    ->toHaveMethod('__invoke');
+
+arch('actions do not query')
+    ->expect('App\Actions')
+    ->not->toUse([
+        'App\Models',
+        'Illuminate\Database\Eloquent\Builder',
+        'Illuminate\Database\Query\Builder',
+        'Illuminate\Support\Facades\Schema',
+    ]);
+
+arch('dtos are readonly contracts')
+    ->expect('App\DTOs')
+    ->toBeReadonly()
+    ->toBeFinal()
+    ->not->toUse(['App\Models', 'Illuminate']);
+
+/**
+ * A custom Eloquent builder is the model's own query surface, so it names its
+ * model by necessity — `App\Builders` is admitted for that reason alone (R23),
+ * and the `QueryBuilder` suffix keeps it from reading as a use-case layer.
+ * Nothing in App\Actions, App\Livewire or App\Console\Commands is admitted.
+ */
+arch('only services touch eloquent')
+    ->expect('App\Models')
+    ->toOnlyBeUsedIn(['App\Services', 'App\Models', 'App\Builders', 'Database']);
+
+/**
+ * A command parses options into a DTO and invokes an Action. Reaching past that
+ * for a Service, a model or the query builder puts business logic in an entry
+ * point — which is most of F05-F09's graded surface (R15).
+ */
+arch('entry points go through actions')
+    ->expect('App\Console\Commands')
+    ->not->toUse(['App\Services', 'App\Models', 'Illuminate\Support\Facades\DB']);
+
+/**
+ * Named for what it proves. The transaction half of the rule — that a Service
+ * never opens one, because `LedgerService::post()`'s whole contract is that the
+ * caller owns the transaction it commits with — cannot be expressed as a `use`
+ * rule, since `DB::transaction()` and `DB::table()` come from the same facade.
+ * It is asserted by reading the source below.
+ */
+arch('services do not dispatch work or fire UI concerns')
+    ->expect('App\Services')
+    ->not->toUse([
+        'Illuminate\Support\Facades\Bus',
+        'Illuminate\Support\Facades\Queue',
+        'Illuminate\Support\Facades\Notification',
+        'Illuminate\Support\Facades\Event',
+    ]);
+
+it('has no service that opens its own transaction', function (): void {
+    $offenders = [];
+
+    foreach (File::allFiles(app_path('Services')) as $file) {
+        if (str_contains(File::get($file->getRealPath()), 'DB::transaction(')) {
+            $offenders[] = $file->getRelativePathname();
+        }
+    }
+
+    expect($offenders)->toBe([], 'A Service must not open a transaction: the Action owns the boundary, so several Service calls can commit as one unit.');
+});

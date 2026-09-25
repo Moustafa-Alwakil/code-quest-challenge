@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * @extends Builder<Plan>
  */
-final class PlanBuilder extends Builder
+final class PlanQueryBuilder extends Builder
 {
     /**
      * Plans a student may still subscribe to.

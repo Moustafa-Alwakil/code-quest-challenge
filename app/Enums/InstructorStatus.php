@@ -12,6 +12,6 @@ namespace App\Enums;
  */
 enum InstructorStatus: string
 {
-    case Active = 'active';
-    case Suspended = 'suspended';
+    case ACTIVE = 'active';
+    case SUSPENDED = 'suspended';
 }

@@ -11,6 +11,15 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!--
+            Concurrency tests must not be transaction-wrapped (R11): a second
+            connection cannot see the first's uncommitted rows, so the race
+            under test never happens. These use DatabaseTruncation and run in
+            the `concurrency` group, registered in tests/Pest.php.
+        -->
+        <testsuite name="Concurrency">
+            <directory>tests/Concurrency</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

@@ -13,13 +13,13 @@ use Illuminate\Database\QueryException;
 it('creates an active instructor', function (): void {
     $instructor = Instructor::factory()->create();
 
-    expect($instructor->status)->toBe(InstructorStatus::Active)
+    expect($instructor->status)->toBe(InstructorStatus::ACTIVE)
         ->and($instructor->payout_account_ref)->toStartWith('acct_');
 });
 
 it('creates a suspended instructor', function (): void {
     expect(Instructor::factory()->suspended()->create()->status)
-        ->toBe(InstructorStatus::Suspended);
+        ->toBe(InstructorStatus::SUSPENDED);
 });
 
 it('refuses two instructors with the same email', function (): void {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -12,7 +13,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int             $id
+ * @property string          $name
+ * @property string          $email
+ * @property bool            $is_admin
+ * @property string          $password
+ * @property string          $remember_token
+ * @property Carbon          $email_verified_at
+ * @property CarbonImmutable $created_at
+ * @property CarbonImmutable $update_at
+ */
 final class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */

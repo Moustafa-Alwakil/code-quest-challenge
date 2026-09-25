@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Builders\PlanBuilder;
+use App\Builders\PlanQueryBuilder;
+use Carbon\CarbonImmutable;
 use Database\Factories\PlanFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,16 @@ use Illuminate\Database\Eloquent\Model;
  * `price_minor` is signed BIGINT piastres cast to int — the accrual schedule
  * splits it across `interval_months` periods with the largest-remainder
  * method, so the periods sum to the price exactly (D-1, D-5).
+ *
+ * @property int             $id
+ * @property string          $key
+ * @property string          $name
+ * @property int             $interval_months
+ * @property int             $price_minor
+ * @property string          $currency
+ * @property bool            $is_active
+ * @property CarbonImmutable $created_at
+ * @property CarbonImmutable $updated_at
  */
 final class Plan extends Model
 {
@@ -22,7 +33,7 @@ final class Plan extends Model
     use HasFactory;
 
     /** Scopes live on the builder, not on the model. */
-    protected static string $builder = PlanBuilder::class;
+    protected static string $builder = PlanQueryBuilder::class;
 
     protected $fillable = [
         'key',

@@ -23,14 +23,14 @@ final class InstructorFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'payout_account_ref' => 'acct_'.Str::lower(Str::random(16)),
-            'status' => InstructorStatus::Active,
+            'status' => InstructorStatus::ACTIVE,
         ];
     }
 
     public function suspended(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'status' => InstructorStatus::Suspended,
+            'status' => InstructorStatus::SUSPENDED,
         ]);
     }
 }

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * @extends Builder<Course>
  */
-final class CourseBuilder extends Builder
+final class CourseQueryBuilder extends Builder
 {
     /**
      * Courses visible to students: published, and not scheduled for the future.

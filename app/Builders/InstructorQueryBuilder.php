@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * @extends Builder<Instructor>
  */
-final class InstructorBuilder extends Builder
+final class InstructorQueryBuilder extends Builder
 {
     /**
      * Instructors currently teaching.
@@ -21,6 +21,6 @@ final class InstructorBuilder extends Builder
      */
     public function active(): self
     {
-        return $this->where('status', InstructorStatus::Active);
+        return $this->where('status', InstructorStatus::ACTIVE);
     }
 }

@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\Ledger\VerifyLedgerAction;
+use App\DTOs\Ledger\VerifyLedgerData;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Assert;
 use Tests\TestCase;
 
 /*
@@ -19,6 +23,18 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
+
+/*
+ * Concurrency tests are deliberately *not* transaction-wrapped (R11, F12).
+ * RefreshDatabase holds one transaction open for the whole test, so a second
+ * connection could never see the first's rows and the race under test would
+ * never happen — the test would pass for the wrong reason. DatabaseTruncation
+ * commits, at the cost of speed, which is why these sit in their own group.
+ */
+pest()->extend(TestCase::class)
+    ->use(DatabaseTruncation::class)
+    ->group('concurrency')
+    ->in('Concurrency');
 
 /*
 |--------------------------------------------------------------------------
@@ -56,4 +72,59 @@ function testSeed(): int
     $seed = $_ENV['TEST_SEED'] ?? getenv('TEST_SEED');
 
     return is_string($seed) && $seed !== '' ? (int) $seed : 20260923;
+}
+
+/**
+ * The project currency, in minor units — every amount in these tests is an int.
+ */
+function egp(int $minor): App\Support\Money
+{
+    return App\Support\Money::of($minor, 'EGP');
+}
+
+/**
+ * Runs the `ledger:verify` checks in-process (F12's invariant hook).
+ *
+ * Registered in `afterEach` by every money-touching test file, so each of those
+ * tests implicitly proves invariants I1-I4 as well as whatever it was written
+ * for: the ledger sums to zero, every transaction sums to zero, every snapshot
+ * field equals its recomputed value, and `outstanding = available + held +
+ * reserved` for every instructor.
+ *
+ * A test that deliberately corrupts the ledger — the `ledger:verify` red path —
+ * is the one place this must not be registered.
+ */
+/**
+ * The same checks as a boolean, for tests whose subject *is* a broken ledger.
+ *
+ * `assertLedgerBalanced()` is an assertion and cannot be negated; a test that
+ * deliberately corrupts the ledger still has to prove the verifier noticed.
+ */
+function ledgerIsClean(?int $instructorId = null): bool
+{
+    return app(VerifyLedgerAction::class)(
+        VerifyLedgerData::fromCommand($instructorId === null ? null : (string) $instructorId, failFast: false)
+    )->isClean();
+}
+
+function assertLedgerBalanced(): void
+{
+    $result = app(VerifyLedgerAction::class)(VerifyLedgerData::everything());
+
+    $report = array_map(
+        static fn (array $row): string => sprintf(
+            '  %s | %s | %s | expected %s, got %s',
+            $row['check'],
+            $row['scope'],
+            $row['field'],
+            $row['expected'],
+            $row['actual'],
+        ),
+        $result->toRows(),
+    );
+
+    Assert::assertTrue(
+        $result->isClean(),
+        "The ledger and the balance snapshot disagree:\n".implode("\n", $report),
+    );
 }

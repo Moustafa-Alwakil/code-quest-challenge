@@ -86,6 +86,29 @@ not what it does.
 | R16 | Arch tests enforce the layering, extending the three already listed in F12 | F12 | Turns the layering from advice into a red test. Listed in full in F12 |
 | R17 | The AI development environment — `.ai/rules/`, `.claude/skills/`, `.claude/agents/`, `CLAUDE.md`, `boost.json` — is committed, not gitignored | F13 | It is the evidence behind `docs/AI_USAGE.md` and the AI-transparency segment of the video. See `../AI_WORKFLOW.md` |
 
+### Ledger core refinements (F03 architecture review)
+
+Recorded when F03's implementation was reviewed. Each is a boundary decision the rest of the build
+inherits, so none of them should be re-litigated feature by feature.
+
+| # | Refinement | Where | Why |
+|---|---|---|---|
+| R18 | A Service may call another Service, but only to keep one invariant atomic, and only downward through an acyclic graph: `LedgerService::post()` calls `InstructorBalanceService::applyDeltas()` itself rather than returning a boolean for each Action to act on. The called Service still opens no transaction | F03, F06–F09; `.ai/rules/services.md` | The linkage "deltas apply *only if* the legs were inserted" is the whole point of `post()`. Pushing it up to the Action layer would repeat that obligation in every one of F05–F09, and each omission would be silent snapshot drift |
+| R19 | `instructor_balances.last_ledger_entry_id` is a debugging watermark, not a verified value. `ledger:verify` does not check it and no code may branch on it — a `@property` docblock says so. F06 does not get to read it for "this balance is current as of entry X"; that guarantee is a new design with its own check, escalated when it is actually needed | F03, F06 | The column is written as `greatest(existing, last id of the posting)`, which is monotonic but does not mean "every entry at or below this id is folded in". A money decision must not rest on a value the verifier never proves |
+| R20 | `held` recomputes to 0 until F05 supplies `earning_allocations` (R2), so `available`'s `− held` term is provably dead in F03 and three `BalanceDelta` constructors cannot be used yet: `recognized()` without a matching `released()`, `released()` without a prior `recognized()`, and `clawedBack()` with anything in `fromHeldMinor`. F03 ships with the dead term rather than deleting it | F03, F05 | No test can distinguish `x − 0` from `x`, so the gap is structural, not a missing assertion; faking a held source to kill the mutant would be an abstraction whose only caller is a test. `tests/Feature/Ledger/HeldBalanceGapTest.php` goes red the day F05 makes `held` real, which is a stronger obligation than a comment |
+| R21 | `ledger:verify` check 3 also compares `instructor_balances.currency` against the single currency of that instructor's ledger entries (skipped when they have none), and the command returns exit 2 (`Command::INVALID`) — not 0 — when `--instructor=` was given and nothing was checked | F03 | `currency` is a snapshot field, and F03's own words are "every snapshot field = its recomputed value". A verify run that reports success over zero rows is the failure mode the counts in the output exist to prevent; exit 2 keeps exit 1 meaning "the money is wrong" |
+| R22 | `Date::use(CarbonImmutable::class)` in `AppServiceProvider::boot()`, so Eloquent date attributes really are immutable | F03 onward, F04 especially | Every `@property CarbonImmutable $created_at` in the models is currently false — Eloquent returns mutable `Illuminate\Support\Carbon` — and PHPStan level 10 trusts the annotation. F04's `term_start + k months` boundary maths (R10) would mutate a model attribute in place with no error reported |
+
+### Convention refinements (F03 review, decided by the maintainer)
+
+Both reverse a call made during the F03 review. Recorded because an agent already "corrected" one
+of them once this session on the strength of the older written rule.
+
+| # | Refinement | Where | Why |
+|---|---|---|---|
+| R23 | Custom Eloquent builders stay in `App\Builders`, named with a `QueryBuilder` suffix (`InstructorQueryBuilder`), and `App\Builders` is admitted to the `only services touch eloquent` arch test — extending F12's literal list by one entry | F02, F03, F12 | A builder is a model's own query surface and names its model by necessity. The suffix is what keeps a top-level namespace from reading as a use-case layer, which was the objection to leaving it there. Nothing in `App\Actions`, `App\Livewire` or `App\Console\Commands` is admitted |
+| R24 | Enum keys are `SCREAMING_SNAKE_CASE` (`PLATFORM_CASH`, `PERIOD_RECOGNIZED`, `ACTIVE`); backing string values stay `snake_case`. Overrides the TitleCase rule in the Boost-generated block of `CLAUDE.md`, via the hand-written `# PHP Conventions` section below it | all features | Enum cases are constants and the case says so at the call site. The override lives outside `<laravel-boost-guidelines>` because `boost:install` regenerates that block, so an edit inside it would be silently lost |
+
 ## Definition of done — every feature
 
 - [ ] Migrations include every constraint the feature lists
