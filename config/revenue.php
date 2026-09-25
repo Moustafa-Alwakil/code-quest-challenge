@@ -62,11 +62,6 @@ return [
     'payout_provider' => env('PAYOUT_PROVIDER', 'random'),
 
     /**
-     * Selects the charge provider implementation used at checkout (F11).
-     */
-    'charge_provider' => env('CHARGE_PROVIDER', 'random'),
-
-    /**
      * Outcome weights for RandomMockProvider (F07), as integers out of 100.
      * Integers, not floats, so the distribution is exact and testable.
      *

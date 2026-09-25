@@ -1,6 +1,6 @@
 # Feature Breakdown — Instructor Revenue Ledger
 
-The reasoning lives in [`../PLAN.md`](../PLAN.md), unchanged. These files split that plan into
+The reasoning lives in [`../PLAN.md`](../PLAN.md). These files split that plan into
 buildable features. Each one stands alone: goal, scope, data model, components, rules, edge cases,
 acceptance criteria, tests, and its hook into the video.
 
@@ -17,25 +17,22 @@ acceptance criteria, tests, and its hook into the video.
 | [F07](07-payout-execution-and-provider.md) | Provider, mock & payout execution | 4 | F06 | D‑8, D‑10 | 3, 4 · proof #2 |
 | [F08](08-payout-reconciliation.md) | Payout reconciliation | 4 | F07 | D‑8 | 4 · proof #3 |
 | [F09](09-refunds-and-clawbacks.md) | Refunds & clawbacks | 5 | F04, F05 (F06–F08) | D‑7 | brief: refunds |
-| [F10](10-filament-admin.md) | Filament admin (read-only) | 5 | F03, F06 | — | 6 |
-| [F11](11-student-flow.md) | Student flow | 6 *(discretionary)* | F04, F09 | D‑11 | — |
+| [F10](10-filament-admin.md) | Filament admin (read-only) | 6 | F03, F06 | — | 6 |
 | [F12](12-testing-and-invariants.md) | Test infrastructure, invariants & chaos | continuous | all | — | 5 |
-| [F13](13-submission-package.md) | Docs, video & submission | 7 | all | — | docs, video |
+| [F13](13-submission-package.md) | Docs, video & submission | 6–7 | all | — | docs, video |
 
 ## Build order
 
 ```
 F01 Money ──┬──► F03 Ledger ──► F04 Subscriptions ──► F05 Recognition ──► F06 Runs ──► F07 Execution ──► F08 Reconcile
-F02 Catalog ┘                        │                      │                                              │
-                                     │                      └──────────────► F09 Refunds ◄────────────────┘
-                                     │                                            │
-                                     └──────────────────────────────► F11 Student flow (Day 6, after the cut line)
+F02 Catalog ┘                                               │                                              │
+                                                            └──────────────► F09 Refunds ◄────────────────┘
 
-F10 Filament ← F03, F06          F12 Testing ← runs alongside everything          F13 Submission ← Day 7
+F10 Filament ← F03, F06          F12 Testing ← runs alongside everything          F13 Submission ← Days 6–7
 ```
 
-**Cut line: end of Day 5.** F01–F10 and F12's chaos test carry every graded point. F11 is built
-only if they are green.
+**If time runs short:** `ScaleSeeder` and `PayoutRunResource` go first — **never** the tests or the
+docs (PLAN §16).
 
 ## Decision → feature map
 
@@ -48,15 +45,15 @@ only if they are green.
 | D‑5 Largest remainder | F01, used in F04, F05, F09 |
 | D‑6 Hold period | F05 (release), F09 (free clawbacks) |
 | D‑7 Negative balance carry-forward | F09, F06 (skips negatives) |
-| D‑8 Unknown ≠ failed | F07, F08, F11 (inbound) |
+| D‑8 Unknown ≠ failed | F07, F08 |
 | D‑9 Append-only double-entry ledger | F03 |
 | D‑10 Constraints for correctness, locks for efficiency | F03, F06, F07 |
-| D‑11 Thin student flow | F11 |
+| ~~D‑11 Thin student flow~~ | withdrawn — R25 |
 
 ## Refinements to PLAN.md
 
-Writing each feature at build level surfaced gaps in the plan. `PLAN.md` is left as it is; the
-refinements live in the feature files and are collected here so `ARCHITECTURE.md` picks them up.
+Writing each feature at build level surfaced gaps in the plan. `PLAN.md` is left as it is — the one
+exception is withdrawing D‑11 (R25) — and the refinements live in the feature files and are collected here so `ARCHITECTURE.md` picks them up.
 
 | # | Refinement | Where | Why |
 |---|---|---|---|
@@ -66,8 +63,8 @@ refinements live in the feature files and are collected here so `ARCHITECTURE.md
 | R4 | `account_id` / `reference_id` NOT NULL; `0` for singleton accounts | F03 | MySQL unique indexes treat NULLs as distinct — a nullable key column silently disables idempotency |
 | R5 | `deferred_revenue` keyed per subscription; `provider_in_transit` per instructor | F03 | Makes "each liability returns to zero" and "reserved per instructor" provable |
 | R6 | Per-instructor revenue share dropped | F05 | Changes the order of rounding operations; documented as an extension |
-| R7 | `payments.idempotency_key` + one-live-subscription generated column | F04, F11 | Needed for double-submit safety at checkout |
-| R8 | Mock providers persist to a table | F07, F11 | "Discover the result later" must work across worker processes |
+| ~~R7~~ | *Withdrawn with the student flow (R25).* ~~`payments.idempotency_key` + one-live-subscription generated column~~ | — | Only checkout needed them; payments are now keyed by UNIQUE `external_ref` (F04) |
+| R8 | Mock providers persist to a table | F07 | "Discover the result later" must work across worker processes |
 | R9 | Payout items born `reserved`; no `pending` state | F06 | Creation and reservation share a transaction |
 | R10 | Period boundaries computed from `term_start + k months`, not chained | F04 | Chaining drifts (Jan 31 → Feb 28 → Mar 28 …) |
 | R11 | Concurrency tests cannot use transaction-wrapped `RefreshDatabase` | F12 | The second connection can't see uncommitted rows, so the race never happens |
@@ -80,9 +77,9 @@ not what it does.
 
 | # | Refinement | Where | Why |
 |---|---|---|---|
-| R13 | Action classes carry the `Action` suffix: `RecognizeAccrualPeriodAction`, `ReserveInstructorBalanceAction`, `StartCheckoutAction`. The unsuffixed names used throughout F04–F11 all gain it | all features | One unambiguous name per layer; an arch test can assert it. `PLAN.md` §15's list reads with the suffix |
+| R13 | Action classes carry the `Action` suffix: `RecognizeAccrualPeriodAction`, `ReserveInstructorBalanceAction`, `ApplyProrataRefundAction`. The unsuffixed names used throughout F04–F10 all gain it | all features | One unambiguous name per layer; an arch test can assert it. `PLAN.md` §15's list reads with the suffix |
 | R14 | Two new layers between the entry point and the models: `app/DTOs/**` (`final readonly` input contracts) and `app/Services/**` (the only place Eloquent and `DB` are touched). Actions orchestrate a use case and own the transaction boundary; they never query | all features | Keeps PLAN §12's keyset pagination, chunked `insertOrIgnore` and atomic increments out of the use-case layer, and makes every Action unit-testable against a faked Service. Services are grouped per aggregate (~6–8), never one per Action |
-| R15 | The entry point is generalized: **Livewire component · Artisan command · queued job · Filament page → DTO → Action → Service → Model.** Commands and jobs are held to the same contract as a component; jobs carry scalar ids and rebuild the DTO in `handle()` | F05–F09 (commands/jobs), F10, F11 | Most of the graded surface enters through commands and jobs, not Livewire. A Livewire-only rule would govern only F11 — which is discretionary and may be cut |
+| R15 | The entry point is generalized: **Livewire component · Artisan command · queued job · Filament page → DTO → Action → Service → Model.** Commands and jobs are held to the same contract as a component; jobs carry scalar ids and rebuild the DTO in `handle()` | F05–F09 (commands/jobs), F10 | Most of the graded surface enters through commands and jobs, not Livewire. A Livewire-only rule would govern only F11 — which was later withdrawn entirely (R25) |
 | R16 | Arch tests enforce the layering, extending the three already listed in F12 | F12 | Turns the layering from advice into a red test. Listed in full in F12 |
 | R17 | The AI development environment — `.ai/rules/`, `.claude/skills/`, `.claude/agents/`, `CLAUDE.md`, `boost.json` — is committed, not gitignored | F13 | It is the evidence behind `docs/AI_USAGE.md` and the AI-transparency segment of the video. See `../AI_WORKFLOW.md` |
 
@@ -116,3 +113,9 @@ of them once this session on the strength of the older written rule.
 - [ ] `ledger:verify` green after the feature's tests (from F03 onward)
 - [ ] One commit (or a small series) with a meaningful message
 - [ ] Decision-log note added for anything AI suggested that you changed or rejected
+
+### Scope refinement (decided by the maintainer)
+
+| # | Refinement | Where | Why |
+|---|---|---|---|
+| R25 | **D‑11 withdrawn: no student flow.** No auth screens, enrolment UI or checkout; F11 and the `livewire-feature-development` skill are deleted. Payments and refunds are recorded as captured facts keyed by a UNIQUE `external_ref` (F04, F09), so there is no inbound charge provider and no `pending` payment. `enrolments` stays as seeded catalog data — engagement is generated only for enrolled courses. R7 is withdrawn with it. This is the one change made to `PLAN.md` itself | PLAN §1, §4, §13–§17, §20; F02, F04, F09, F10, F13; `.claude/skills`, `.ai/rules/dtos.md`, `config/revenue.php` | The brief's story starts after the student has paid and grades no UI beyond one read-only screen. The time returns to `ScaleSeeder`, `PayoutRunResource` and the docs. Trade-off, stated openly: Livewire skill now shows only through Filament |

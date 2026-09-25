@@ -79,11 +79,11 @@ The restated problem and the `D‑n` / `R‑n` decisions that govern it.
 ## Proposed structure
 | Layer | Class | Responsibility |
 | --- | --- | --- |
-| Entry | `App\Livewire\Checkout` | … |
-| DTO | `App\DTOs\Checkout\StartCheckoutData` | fields and types |
-| Action | `App\Actions\Checkout\StartCheckoutAction` | the use case, the transaction boundary |
-| Service | `App\Services\SubscriptionService` | methods added |
-| Model | `App\Models\Payment` | columns, casts, relationships |
+| Entry | `App\Console\Commands\RunPayoutsCommand` | … |
+| DTO | `App\DTOs\Payouts\RunPayoutsData` | fields and types |
+| Action | `App\Actions\Payouts\RunPayoutsAction` | the use case, the transaction boundary |
+| Service | `App\Services\PayoutRunService` | methods added |
+| Model | `App\Models\PayoutRun` | columns, casts, relationships |
 
 ## Architectural decisions
 Each with the alternative rejected and why.

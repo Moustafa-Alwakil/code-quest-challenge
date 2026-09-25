@@ -68,11 +68,9 @@ moved, the app thinks it did not, the next run pays again. Treating it as succes
 silent-loss bug. The only honest answer is "we do not know yet", modelled explicitly, with the money
 frozen until the provider tells us the truth via `getStatus()`.
 
-The same discipline runs inbound: a timed-out charge leaves the subscription inactive and the
-payment `unknown`, and is never re-sent blindly.
+## Inbound facts
 
-## The checkout parallel
-
-A double-clicked **Pay** button is the same bug as a double-run payout command, and it gets the same
-answer: **a unique index, not a disabled button.** The disabled button and the Alpine spinner are
-the UI-layer comfort on top.
+Payments and refunds are not initiated here — they arrive as captured facts from the gateway
+(R25). Each carries the gateway's reference in a UNIQUE, NOT NULL `external_ref`, so recording the
+same fact twice is a no-op: the second insert hits the constraint and the caller takes the replay
+path. Same ladder, pointed inward.

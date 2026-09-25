@@ -48,7 +48,7 @@ its own convention.
 
 **Why the entry point is generalized.** The brief for this workflow described the chain as starting
 at Livewire. But roughly 65% of the grade enters the system through Artisan commands and queued
-jobs, and the only genuinely Livewire feature (F11) is discretionary and may be cut entirely. A
+jobs, and the only genuinely Livewire feature (F11) was later withdrawn entirely (R25). A
 Livewire-only rule would have governed the least important code in the repository. Generalizing it
 covers 100% of the application while leaving Livewire its own layer of guidance on top.
 
@@ -88,7 +88,7 @@ Boost installed five skills: `laravel-best-practices` (18 rule files), `testing-
 `livewire-development`, `tailwindcss-development`, `infer-conventions`. They are the baseline and
 are left unmodified.
 
-The six project skills each open with a *"What Boost already covers"* section and delegate rather
+The five project skills each open with a *"What Boost already covers"* section and delegate rather
 than restate. Nothing generic was rewritten — no project Laravel skill, no project Tailwind skill,
 no generic testing skill.
 
@@ -111,12 +111,11 @@ glob→file table. Every agent reads the index and the matching files before pla
 `services.md` · `models.md` · `livewire.md` · `commands.md` · `jobs.md` · `filament.md` ·
 `support.md` · `migrations.md` · `tests.md`
 
-### `.claude/skills/` — 6 project skills
+### `.claude/skills/` — 5 project skills
 
 | Skill | Covers |
 |---|---|
 | `revenue-ledger-architecture` | The layering contract, naming, transaction boundaries, the idempotency ladder, integer money, when a layer may be skipped. References: `layering.md`, `idempotency.md`, `money.md` |
-| `livewire-feature-development` | Component contract, validation→DTO, `#[Locked]` intent keys, the `unknown` payment state in the UI, authorization, N+1 and state size, F11 scope discipline |
 | `ledger-testing` | MySQL-not-SQLite, the concurrency group, invariants I1–I8, the three required proofs, layer-by-layer test strategy, the arch tests, the chaos test |
 | `feature-research` | Source-of-truth order, version and schema verification, findings template separating verified from assumed |
 | `feature-architecture` | Boundary decision tables, design output contract, the obligation to record deviations as `R-n`, the review checklist |

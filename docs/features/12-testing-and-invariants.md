@@ -60,7 +60,7 @@ advisory — a violation is a red test, not a code-review opinion. Written on Da
 **Purity and queueing**
 
 - `App\Support` (Money, Allocator, RevenueSplit) does no I/O: no `DB`, no `config`, no clock, no models
-- Livewire components, controllers and Filament resources do not use `DB` or `LedgerEntry`
+- Controllers and Filament resources do not use `DB` or `LedgerEntry`
   directly — money moves only through Actions
 - Jobs implement `ShouldQueue`
 
@@ -72,7 +72,7 @@ advisory — a violation is a red test, not a code-review opinion. Written on Da
 | Actions do not query | `App\Actions` does not use `App\Models` or the query builder (`DB::transaction` excepted) |
 | DTOs are contracts | `App\DTOs` is `final readonly`; does not use `App\Models` or `Illuminate` |
 | Services own persistence | `App\Models` is used only in `App\Services`, `App\Models` and `Database` |
-| Entry points go through Actions | `App\Livewire` and `App\Console\Commands` do not use `App\Services` |
+| Entry points go through Actions | `App\Console\Commands` does not use `App\Services` (nor `App\Livewire`, should a component ever be added) |
 
 When an arch test fails, the code is wrong. Relaxing the test is an architecture decision, not a
 fix — it goes through the Architect and is recorded as an `R-n` refinement.

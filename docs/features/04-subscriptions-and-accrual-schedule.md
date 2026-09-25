@@ -6,33 +6,33 @@
 
 ## Goal
 
-Turn a successful up-front payment into a subscription with a complete, exact accrual schedule
-and a deferred-revenue liability on the ledger — through **one entry point** used by seeders,
-tests and checkout alike.
+Turn a captured up-front payment into a subscription with a complete, exact accrual schedule and
+a deferred-revenue liability on the ledger — through **one entry point** used by seeders, tests and
+any future ingestion path.
+
+## Payments are recorded facts
+
+The brief's story begins *after* the student has paid. This system does not take card payments:
+it records each captured payment **once**, keyed by the gateway's reference, and derives everything
+else from it. There is no checkout, no `pending` payment, and no inbound provider call. *(R25.)*
 
 ## Data model
 
 ### `subscriptions`
 
-`user_id`, `plan_id`, `status`, `term_start` (set at capture), `term_end`, `term_days`,
-`price_minor` (snapshotted from the plan at purchase), `currency`, `canceled_at`, `active_user_id`.
+`user_id`, `plan_id`, `status`, `term_start` (= the payment's `captured_at`), `term_end`,
+`term_days`, `price_minor` (snapshotted from the plan at purchase), `currency`, `canceled_at`.
 
-- `status`: `pending_payment`, `active`, `payment_failed`, `refunded`, `expired`
-- `active_user_id`: generated column = `user_id` when status is `pending_payment` or `active`,
-  otherwise NULL. **UNIQUE.** Enforces one live subscription per student at the database level.
-  (Here NULLs being distinct is exactly the behaviour we want.) Used by F11.
+- `status`: `active`, `refunded`, `expired`
 - INDEX `(status, term_end)`
 
 ### `payments`
 
-`subscription_id`, `idempotency_key`, `external_ref`, `amount_minor`, `currency`, `status`,
-`captured_at`, `next_check_at`, `attempts`, `last_error`.
+`subscription_id`, `external_ref`, `amount_minor`, `currency`, `captured_at`.
 
-- `status`: `pending`, `succeeded`, `failed`, `unknown`
-- **UNIQUE** `subscription_id` — one payment per subscription; a failed charge ends that
-  subscription and a retry starts a new checkout
-- **UNIQUE** `idempotency_key` — double-submit guard (F11)
-- **UNIQUE** `external_ref` — provider charge id; nullable while pending (multiple NULLs intended)
+- **UNIQUE** `subscription_id` — one up-front payment per subscription
+- **UNIQUE** `external_ref`, **NOT NULL** — the gateway's charge id. Recording the same payment
+  twice is a no-op. (NOT NULL matters: a nullable column in a unique key disables it — R4.)
 
 ### `accrual_periods`
 
@@ -60,13 +60,18 @@ from the anchor gives Jan 31 → Feb 28 → Mar 31 → Apr 30.
 
 ### `SubscribeStudent` — the single entry point
 
-Used by F11's checkout confirmation, by seeders, and by tests. One DB transaction:
+Input: user id, plan id, `external_ref`, amount, `captured_at`. Used by seeders and tests, and by
+any future ingestion path (a gateway webhook, an import). One DB transaction:
 
-1. CAS payment `pending → succeeded` (or create an already-captured payment for seeders). If the
-   CAS affects 0 rows, this activation already happened — return the existing subscription.
-2. Subscription → `active`; `term_start = captured_at`; `term_end`, `term_days` from the anchor.
-3. Post `payment_received`: DR `platform_cash[0]` +price, CR `deferred_revenue[sub]` −price.
-4. `AccrualScheduler::scheduleFor(sub)`.
+1. Look up the payment by `external_ref`. Found → return its subscription. **A replay writes
+   nothing.**
+2. Assert the amount and currency equal the plan's price; reject otherwise.
+3. Create the subscription `active`; `term_start = captured_at`; `term_end`, `term_days` from the
+   anchor; price snapshotted.
+4. Insert the payment. A concurrent duplicate hits UNIQUE `external_ref`; that transaction rolls
+   back, and its retry takes step 1's replay path.
+5. Post `payment_received`: DR `platform_cash[0]` +price, CR `deferred_revenue[sub]` −price.
+6. `AccrualScheduler::scheduleFor(sub)`.
 
 ### `ExpireSubscriptions` (daily)
 
@@ -75,8 +80,8 @@ accrual periods, never by subscription status. Worth saying in the video.
 
 ## Rules
 
-- **Term starts at capture, not at checkout intent.** A delayed payment confirmation (F11) must
-  not shorten the student's term. `captured_at` comes from the provider.
+- **Term starts at capture.** `term_start` is the gateway's `captured_at`, not the time the fact
+  was recorded, so a late-arriving record does not shorten the student's term.
 - **Dates:** periods are DATEs in UTC. A purchase at 23:00 counts from that date. Cairo-local
   business days are a documented limitation.
 - Price is snapshotted — later plan price changes do not affect existing subscriptions.
@@ -90,22 +95,24 @@ accrual periods, never by subscription status. Worth saying in the video.
 | annual term spanning Feb 29 | 366 term days; still Σ = price |
 | monthly plan | one period, gross = price |
 | price not divisible by days | largest remainder; earlier sequences win ties |
-| activation called twice | CAS no-op; one subscription, one ledger txn, one schedule |
+| same payment recorded twice | replay: one subscription, one ledger transaction, one schedule |
+| same payment recorded concurrently | UNIQUE `external_ref`: one wins, the other replays |
+| amount differs from plan price | rejected, nothing written |
 | plan price changed after purchase | no effect |
 
 ## Acceptance criteria
 
 - [ ] For all 3 plans × all 366 start dates of a leap year: `Σ gross === price` and no drift
-- [ ] `SubscribeStudent` twice with the same payment → one of everything
-- [ ] After activation: `deferred_revenue[sub] = price`; ledger balanced
+- [ ] `SubscribeStudent` twice with the same `external_ref` → one of everything
+- [ ] After recording: `deferred_revenue[sub] = price`; ledger balanced
 
 ## Tests
 
 - Unit: boundary computation (Jan 31, leap years, month ends); Σ-gross dataset above
-- Integration: activation idempotency; ledger entries; `ledger:verify` green;
-  one-live-subscription constraint rejects a second active subscription for the same student
+- Integration: replay idempotency; amount mismatch rejected; ledger entries; `ledger:verify` green
+- Concurrency group: two connections record the same `external_ref` → one subscription
 
 ## Demo hook
 
-Demo 0: after checkout, show the twelve periods and their uneven-but-exact gross amounts summing
-to EGP 3 000.00.
+Show a seeded annual subscription's twelve periods and their uneven-but-exact gross amounts
+summing to EGP 3 000.00 — the setup for every failure demo that follows.

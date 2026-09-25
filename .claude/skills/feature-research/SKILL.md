@@ -16,10 +16,10 @@ convenient source.
 1. **`docs/features/NN-*.md`** — the feature specification. It already names the tables, the
    constraints, the components, the edge cases and the acceptance criteria. Most "open questions"
    are answered here, and reading it first is what stops you inventing requirements.
-2. **`docs/PLAN.md`** — the reasoning. Decisions are numbered `D‑1 … D‑11` with the alternatives
+2. **`docs/PLAN.md`** — the reasoning. Decisions are numbered `D‑1 … D‑10` (D‑11 was withdrawn — R25) with the alternatives
    that were rejected and why. If a proposal contradicts a `D‑n`, that is the headline finding.
-3. **`docs/features/README.md`** — the refinements table (`R1 … R17`). It supersedes `PLAN.md`
-   where the two differ; `PLAN.md` is deliberately left unedited.
+3. **`docs/features/README.md`** — the refinements table (`R1 … R25`). It supersedes `PLAN.md`
+   where the two differ; `PLAN.md` is left unedited apart from withdrawing D‑11 (R25).
 4. **`.ai/rules/`** — start at `index.md`, read every file whose globs cover the paths in scope,
    then `grep -rin '<keyword>' .ai/rules` for what a path match misses.
 5. **The existing codebase** — an established pattern beats a better idea. Read the sibling files.
@@ -49,7 +49,7 @@ This codebase has a narrow set of genuinely hard questions. Aim at them:
 - What does the framework guarantee about transaction boundaries, `afterCommit()`, job retries,
   `ShouldBeUnique` TTLs, and batch `finally` callbacks when a worker is killed?
 - Does an approach hold at 500k subscriptions and tens of millions of rows, or only in a test?
-- Which of `D‑1 … D‑11` does this touch, and does the proposal quietly contradict one?
+- Which of `D‑1 … D‑10` does this touch, and does the proposal quietly contradict one?
 
 ## Output template
 

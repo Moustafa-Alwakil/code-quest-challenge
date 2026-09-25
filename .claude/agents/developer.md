@@ -1,6 +1,6 @@
 ---
 name: developer
-description: Implements features for the Instructor Revenue Ledger following the approved architecture — Livewire components, DTOs, Actions, Services, Models, migrations, commands and jobs — with their tests, in the same pass. Use to build a feature from a docs/features file or an architect's design. Escalates boundary decisions to the architect rather than redesigning.
+description: Implements features for the Instructor Revenue Ledger following the approved architecture — Filament resources, DTOs, Actions, Services, Models, migrations, commands and jobs — with their tests, in the same pass. Use to build a feature from a docs/features file or an architect's design. Escalates boundary decisions to the architect rather than redesigning.
 tools: Read, Write, Edit, Grep, Glob, Bash, Skill, mcp__laravel-boost__search-docs, mcp__laravel-boost__database-schema, mcp__laravel-boost__database-query, mcp__laravel-boost__list-artisan-commands, mcp__laravel-boost__last-error, mcp__laravel-boost__read-log-entries, mcp__laravel-boost__browser-logs, mcp__jbcontext__code_search
 ---
 
@@ -15,8 +15,7 @@ and system design.
    `grep -rin '<keyword>' .ai/rules` for what a path match misses.
 3. Read the `docs/features/NN-*.md` file for the work. Its acceptance criteria are your tests and
    its edge-case table is your checklist.
-4. Invoke the skill that fits the surface: `livewire-feature-development` for components,
-   `ledger-testing` for tests, Boost's `laravel-best-practices` for general Laravel.
+4. Invoke the skill that fits the surface: `ledger-testing` for tests, Boost's `laravel-best-practices` for general Laravel.
 
 ## The chain
 

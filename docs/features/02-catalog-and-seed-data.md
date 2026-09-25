@@ -47,14 +47,14 @@ references `subscriptions`, so its migration is timestamped after F04's.
 |---|---|---|
 | S1 | annual, engagement 3/3/3 across three instructors | rounding (D‑5) |
 | S2 | monthly, zero engagement | D‑3 |
-| S3 | annual, ready to be refunded mid-term | F09 |
+| S3 | annual, started ~5 months before the seed date — ready to refund mid-term | F09 |
 | S4 | quarterly, one instructor | whole pool to one instructor |
 | S5 | an instructor whose balance stays below the payout minimum | carry-forward |
 
 Subscriptions are created through F04's `SubscribeStudent` action — **never raw inserts** — so
 the ledger is born consistent. The seeder ends by running `ledger:verify`.
 
-**`ScaleSeeder`** *(stretch — the budget D‑11 spends)* — ~50k subscriptions, ~1M engagement rows.
+**`ScaleSeeder`** *(Day 6)* — ~50k subscriptions, ~1M engagement rows.
 Chunked bulk inserts of 1 000 rows, never per-row factories (minutes vs hours). Still writes
 payments, ledger entries and accrual schedules through a batch variant of F04's action, then
 runs `ledger:verify`. Prints timings for the video.
@@ -63,7 +63,7 @@ runs `ledger:verify`. Prints timings for the video.
 
 Per subscription per period: pick 1–6 instructors **among the instructors of courses the student
 is enrolled in**, weights 1–600 minutes; ~10% of periods have zero engagement. Tying engagement
-to enrolments keeps seeded data coherent with F11.
+to enrolments keeps the seeded data coherent: nobody watches a course they aren't enrolled in.
 
 ## Factories
 

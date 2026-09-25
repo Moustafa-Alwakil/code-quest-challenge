@@ -1,6 +1,6 @@
 # F10 — Filament Admin (Read-only)
 
-> **Day:** 5 · **Depends on:** F03, F06 (F08 for the full status set)
+> **Day:** 6 · **Depends on:** F03, F06 (F08 for the full status set)
 > **Plan refs:** §13.1 · **Required item 6**
 > **Grade areas:** Laravel implementation (15%) — and it's the lens for every failure demo
 
@@ -59,10 +59,10 @@ Reads the snapshot only — **never** a ledger `SUM()` at request time.
 
 `canCreate`, `canEdit`, `canDelete` → false. No bulk actions. No create/edit routes.
 
-## `PayoutRunResource` *(stretch — budget spent by D‑11)*
+## `PayoutRunResource`
 
-Runs with item counts by status; view page lists the run's items. Makes scenarios 1, 2 and 4
-more legible on camera. Build only if Day 6 finishes early — and after `ScaleSeeder`.
+Runs with item counts by status; view page lists the run's items. Cheap to add, and it makes
+scenarios 1, 2 and 4 legible on camera. First to go if Day 6 runs short (PLAN §16).
 
 ## Performance
 

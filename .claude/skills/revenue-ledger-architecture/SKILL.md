@@ -48,15 +48,15 @@ Full responsibilities, worked examples and the anti-patterns each layer attracts
 
 | Layer | Namespace | Shape |
 | --- | --- | --- |
-| Component | `App\Livewire\<Area>` | `Checkout`, `MySubscription` |
+| Filament | `App\Filament\Resources` | `InstructorResource` — read-only |
 | Command | `App\Console\Commands` | signature `payouts:run`, `ledger:accrue` |
 | Job | `App\Jobs` | `ProcessPayoutItemJob` |
-| DTO | `App\DTOs\<Domain>` | `StartCheckoutData`, `RecognizePeriodData` — `Data` suffix |
+| DTO | `App\DTOs\<Domain>` | `RunPayoutsData`, `RecognizePeriodData` — `Data` suffix |
 | Action | `App\Actions\<Domain>` | `ReserveInstructorBalanceAction` — `Action` suffix, verb first |
 | Service | `App\Services` | `InstructorBalanceService` — one per aggregate |
 | Model | `App\Models` | `PayoutItem`, `LedgerEntry` |
 
-Domains: `Accrual`, `Checkout`, `Ledger`, `Payouts`, `Refunds`.
+Domains: `Accrual`, `Ledger`, `Payouts`, `Refunds`, `Subscriptions`.
 
 Name an Action for the concrete operation — `ApplyProrataRefundAction`, `SettlePayoutItemAction`.
 Never `PayoutAction`, `LedgerAction`, `CommonAction`: a noun bucket becomes a god class within a day.

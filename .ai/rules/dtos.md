@@ -6,7 +6,7 @@ paths:
 # DTOs
 
 ## DTOs: final readonly input contracts, scalars only
-Every Action takes a DTO, never an array. `final readonly class StartCheckoutData` with promoted, typed constructor properties.
+Every Action takes a DTO, never an array. `final readonly class RunPayoutsData` with promoted, typed constructor properties.
 
 Build them with named constructors at the boundary — `fromLivewire()`, `fromCommand()`, `fromValidated()` — so Livewire, console and request shapes never leak inward.
 

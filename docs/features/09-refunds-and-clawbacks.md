@@ -20,30 +20,40 @@ through a full refund.)* It is also the strongest single sentence for the video:
 student cancelling doesn't cost any instructor anything — because nobody was ever credited for
 the months the student didn't use."*
 
+## Refunds are recorded facts
+
+Like payments (F04), a refund is executed at the payment gateway, outside this system. F09
+records it — keyed by the gateway's refund reference — and applies its consequences to the
+ledger. *(R25.)*
+
 ## Refund types
 
-| Type | Amount | Instructor impact | Triggered by |
-|---|---|---|---|
-| `prorata` (default) | price of unused time from the effective date | **none** | student *Cancel* (F11) |
-| `full` | the whole payment | clawback of every recognized allocation | admin / chargeback: `refunds:issue {subscription} --full --reason=` |
+| Type | Amount | Instructor impact |
+|---|---|---|
+| `prorata` (default) | price of unused time from the effective date | **none** |
+| `full` | the whole payment | clawback of every recognized allocation |
 
 Arbitrary partial amounts are out of scope.
+
+**Entry point:** `refunds:issue {subscription} --external-ref= {--full} {--effective=today}
+{--dry-run} {--reason=}`. `--dry-run` computes and prints the refund and the per-instructor
+impact without writing — through the same code path, so the preview is the number applied.
 
 ## Data model
 
 ### `refunds`
 
-`payment_id`, `subscription_id`, `type`, `amount_minor`, `effective_at` (DATE),
-`idempotency_key`, `reason`, `created_at`.
+`payment_id`, `subscription_id`, `type`, `amount_minor`, `effective_at` (DATE), `external_ref`,
+`reason`, `created_at`.
 
 - **UNIQUE** `subscription_id` — one refund per subscription; a second is a no-op
-- **UNIQUE** `idempotency_key`
+- **UNIQUE** `external_ref`, NOT NULL — the gateway's refund id
 
 ## Components
 
 ### `ApplyProrataRefund` — one DB transaction
 
-1. Lock the subscription `FOR UPDATE`; CAS `active → refunded`. Payment not `succeeded` → refuse.
+1. Lock the subscription `FOR UPDATE`; CAS `active → refunded`.
 2. Find the current period *P* (`period_start ≤ E < period_end`, status `scheduled`), where *E*
    is the effective date.
 3. **Truncate P.**
@@ -54,9 +64,9 @@ Arbitrary partial amounts are out of scope.
 4. Cancel every later `scheduled` period.
 5. `refund = Σ cancelled gross + unused part of P`. **Assert it equals the remaining
    `deferred_revenue[sub]` balance on the ledger** — two independent computations must agree.
-6. Post `refund_unearned`: DR `deferred_revenue[sub]` +refund, CR `platform_cash[0]` −refund.
-   Deferred revenue for the subscription is now exactly 0.
-7. Commit, then call the charge provider's refund with the refund's idempotency key.
+6. Insert the `refunds` row; post `refund_unearned`: DR `deferred_revenue[sub]` +refund,
+   CR `platform_cash[0]` −refund. Deferred revenue for the subscription is now exactly 0.
+7. Commit.
 
 ### `ApplyFullRefund` — one DB transaction
 
@@ -68,7 +78,7 @@ Arbitrary partial amounts are out of scope.
 4. Post one `refund_clawback` transaction (reference: the refund), legs **aggregated per
    account** so no account appears twice: DR `instructor_payable[i]` for each instructor,
    DR `platform_revenue[0]` for the platform's recognized share, CR `platform_cash[0]` for the total.
-5. Assert total refunded = price. Commit, then call the provider refund.
+5. Assert total refunded = price. Commit.
 
 ## Rules
 
@@ -79,8 +89,8 @@ Arbitrary partial amounts are out of scope.
 - A clawback never touches a reserved or in-flight payout item. That item pays what it reserved;
   the negative nets next time.
 - Lock order: subscription first, then instructor balances ascending — same order everywhere.
-- Inbound provider refunds always succeed in scope. Making them unreliable would reuse F08's
-  pattern exactly; documented as a limitation rather than built.
+- The gateway executing the refund is assumed to succeed; this system records the outcome, not the
+  attempt. Documented assumption.
 
 ## Edge cases
 
@@ -89,10 +99,9 @@ Arbitrary partial amounts are out of scope.
 | refund on day one (`E = term_start`) | first period cancelled; full price back; no clawback — nothing was earned |
 | refund exactly on a period boundary | no truncation; that and later periods cancelled |
 | refund after the term is fully recognized | pro-rata amount 0; status changes, no money moves |
-| refund twice | unique `subscription_id` → no-op |
+| refund twice (same or different `external_ref`) | unique `subscription_id` → no-op |
 | refund concurrent with `ledger:accrue` on *P* | subscription lock + period CAS; exactly one of them recognizes *P* |
 | refund concurrent with `payouts:run` for an affected instructor | row locks in the fixed order; reserved amounts untouched |
-| refund while payment is `unknown` | refused — you cannot refund a charge you haven't confirmed |
 | instructor goes negative and stops teaching | unrecoverable balance — documented limitation (D‑7) |
 
 ## Acceptance criteria / tests
@@ -101,6 +110,7 @@ Arbitrary partial amounts are out of scope.
       truncated period's recognition; `deferred_revenue[sub] = 0`;
       `refund + Σ recognized gross = price`
 - [ ] `E = term_start` → full price back, zero clawback
+- [ ] `--dry-run` preview equals the amount then applied; dry run writes nothing
 - [ ] Full refund while allocations are held → `held` drops, `available` unchanged
 - [ ] Full refund after payout → `available` negative; later earnings net it; payouts skip the
       instructor until the balance is back above the minimum
@@ -110,6 +120,7 @@ Arbitrary partial amounts are out of scope.
 
 ## Demo hook
 
-Scenario 6: an annual student clicks **Cancel** in month 5 (F11) → periods 6–12 cancelled,
-instructor balances untouched. Then the full-refund variant via artisan, showing a negative
-balance carried forward in Filament.
+Scenario 6: `refunds:issue` on DemoSeeder's S3 — an annual subscription that started ~5 months
+ago — first with `--dry-run`, then for real → periods 6–12 cancelled, instructor balances
+untouched. Then the `--full` variant on another subscription, showing a negative balance carried
+forward in Filament.

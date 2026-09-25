@@ -13,8 +13,8 @@ declare(strict_types=1);
 | an architecture decision that goes through the architect and is recorded as a
 | numbered R-n refinement.
 |
-| Rules for App\Actions, App\DTOs, App\Services, App\Livewire, App\Jobs and
-| App\Console\Commands are added as F03-F11 create those namespaces; Pest's
+| Rules for App\Actions, App\DTOs, App\Services, App\Jobs and
+| App\Console\Commands are added as F03-F10 create those namespaces; Pest's
 | arch() errors on a namespace that holds no classes.
 |
 | App\Support is ordinary Laravel code: it uses Illuminate\Support\Str and

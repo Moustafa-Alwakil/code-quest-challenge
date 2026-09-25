@@ -22,7 +22,7 @@ Every other feature does money arithmetic through these — never inline.
 | `App\Support\Money` | Immutable `(int minor, string currency)`. Add, subtract, negate, isZero, isNegative, equals. Throws on currency mismatch. Display formatting only at the UI edge. |
 | `App\Support\Allocator::largestRemainder(total, weights)` | Split a non-negative integer total across integer weights so the parts sum **exactly** to the total. Keys preserved. |
 | `App\Support\RevenueSplit::split(gross, shareBps)` | Returns `[instructorPool, platformCut]`. Pool is floored; platform absorbs the sub-unit. |
-| `config/revenue.php` | `instructor_share_bps`, `hold_days`, `minimum_payout_minor`, `zero_engagement_policy`, `currency`, `payout_provider`, `charge_provider`, provider probabilities. Every policy decision in the plan is a visible dial here. |
+| `config/revenue.php` | `instructor_share_bps`, `hold_days`, `minimum_payout_minor`, `zero_engagement_policy`, `currency`, `payout_provider`, provider probabilities. Every policy decision in the plan is a visible dial here. |
 
 The three classes use `Illuminate\Support\Str` and `Number` in preference to native string and
 number functions, like the rest of `app/`. What an arch test does enforce (F12) is that they do no

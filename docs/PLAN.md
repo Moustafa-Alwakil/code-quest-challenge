@@ -38,8 +38,10 @@ The weights tell you what to build and — more importantly — what *not* to bu
 features. The explicit statement is *"A smaller solution with strong engineering judgment will
 score higher than a larger solution with weak reasoning."*
 
-**Scoping consequence.** Everything built must serve the money core. Nothing gets built merely
-because a real LMS would have it.
+**Scoping consequence.** Everything built must serve the money core: build no LMS. No student-facing
+UI, no auth screens, no enrolment flow, no checkout. Courses, enrolments and engagement exist only as
+seeded data that feeds the allocator; payments and refunds are recorded as captured facts, because
+the brief's story starts *after* the student has paid.
 
 Two caveats on how to read that, since it is the one place this plan editorialises on top of the
 brief:
@@ -50,9 +52,7 @@ brief:
   completeness.
 - *Inferred by me:* which specific things to therefore skip. The brief never enumerates them.
 
-The one deliberate exception is a **thin student flow** — see D‑11 (§4) and §13.2. It is the only
-feature work in this plan that is not in the Required list, and it earns its place for a specific
-reason, not because it completes the product.
+A thin student flow (auth, enrolment, checkout) was considered and withdrawn — see §20.
 
 ---
 
@@ -319,58 +319,16 @@ sentence to say out loud in the review.
 
 ---
 
-### D‑11 — A thin student flow is built, because the role is Full Stack and the money has to start somewhere
-
-**Decision.** Build a minimal student-facing slice in Livewire 3 + Alpine + Tailwind: register /
-login, browse seeded courses, enrol, choose a plan and pay, view the active subscription, request
-cancellation. Nothing else.
-
-**Why — two reasons, both defensible under questioning:**
-
-1. **The job spec asks for it.** *"Full Stack Laravel Engineer." "Solid grasp of Livewire v3 and
-   Alpine.js patterns." "Comfortable with… Composer, NPM, Vite, Tailwind, and Git."* A submission
-   made only of Artisan commands, queued jobs and Filament resources demonstrates **none** of
-   those three bullets. Filament generates its own UI — it is evidence you can configure Filament,
-   not that you can write Livewire.
-2. **It gives the money core a real entry point.** Inbound checkout is the mirror image of an
-   outbound payout and deserves identical discipline: a unique external reference, double-submit
-   protection, persist-intent-then-charge ordering, and a mock charge provider that can also time
-   out. That turns the student flow from decoration into *more surface area for the exact thing
-   being graded* — and it is the honest answer when a reviewer asks "why did you build UI you
-   weren't asked for?"
-
-**What it must not become.** Video playback, lesson progress, quizzes, certificates, search,
-reviews, instructor portals, profile editing. The line is one sentence: **if it does not create,
-end or refund a subscription, it is not built.**
-
-**Cost, and where it comes from.** ~1.5 days. Auth is Breeze on the Livewire stack
-(`breeze:install livewire`), never hand-rolled — 30 minutes, not a day. The budget comes out of
-`ScaleSeeder` and the second Filament resource, both of which were already optional. **It never
-comes out of §14's tests or §15's docs** — those carry 15% of the grade between them, and the
-student flow carries 0%.
-
-**Risk, stated plainly.** This is now the highest-risk decision in the plan: it is the only item
-with no weight in the evaluation table, and the failure mode is obvious — the flow grows, the week
-goes, and the chaos test never gets written. Mitigation is structural, not willpower: it is
-scheduled *after* the three required proofs pass (§16, Day 6), so if it is cut, everything graded
-is already done.
-
-**Rejected.** (a) *No student UI at all* — safest for the week, but silently fails three lines of
-"Who We're Looking For". (b) *A full LMS* — obviously out. (c) *Seeded subscriptions plus a
-Filament "create subscription" action* — cheaper, but proves nothing about Livewire.
-
----
-
 ## 5. Domain model & schema
 
-### 5.1 Supporting tables (seeded; only `enrolments` is written by the app)
+### 5.1 Supporting tables (seeded, not built out)
 
 | Table | Purpose |
 |---|---|
-| `users` | students (Laravel default + Breeze) |
+| `users` | students (Laravel default) + `is_admin` for Filament |
 | `instructors` | `payout_account_ref`, `status`, optional `revenue_share_bps` override |
 | `courses` | `instructor_id`, `title` |
-| `enrolments` | `user_id`, `course_id` — **UNIQUE** pair. Added by D‑11; the only table the student UI creates besides subscriptions and payments |
+| `enrolments` | `user_id`, `course_id` — **UNIQUE** pair. Seeded; engagement is generated only for courses a student is enrolled in |
 | `plans` | `key`, `interval_months`, `price_minor`, `currency` |
 
 ### 5.2 Money-in
@@ -616,9 +574,7 @@ video show a payout run against non-trivial data with timings, instead of assert
 
 ---
 
-## 13. User interfaces
-
-### 13.1 Filament admin — Required item 6
+## 13. Filament screen
 
 Read-only, `canCreate/canEdit/canDelete = false`.
 
@@ -632,46 +588,7 @@ lifetime earned · lifetime paid · outstanding · last payout.
 
 **`PayoutRunResource`** — runs with item counts by status. Cheap to add, and it is what makes the
 failure demos legible on camera: the reviewer watches an item sit in `unknown`, then flip to
-`succeeded` after `payouts:reconcile` runs. *Stretch goal — this is part of the budget D‑11 spends.*
-
-### 13.2 Student flow — Livewire 3 + Alpine + Tailwind (D‑11)
-
-Five screens. That is the entire list, and it is a closed list.
-
-| Screen | Stack | Does | Why it exists |
-|---|---|---|---|
-| Register / login | Breeze, Livewire stack | standard auth | ~free; proves the stack is wired end to end |
-| Course catalog | Livewire component | seeded courses + instructor, paginated | gives enrolment something to point at |
-| Enrol / un-enrol | Livewire action + Alpine optimistic toggle | writes `enrolments` | the Alpine touch-point; also the input if you ever switch D‑3's policy |
-| Choose plan → checkout | Livewire multi-step + Alpine | plan cards, confirm, mock charge | **creates the payment that starts the entire ledger** |
-| My subscription | Livewire component | term, days remaining, plan, status, *Cancel* | cancel → refund → the clawback demo becomes a click |
-
-**New tables:** `enrolments` only. **Engagement stays seeded** — you are not building a video
-player, so there is no honest way to generate real watch time, and faking it in the UI would be
-worse than seeding it openly. Say that in the video rather than hiding it.
-
-**Checkout is held to payout standards.** This is the part worth saying out loud:
-
-| Outbound (payout) | Inbound (checkout) |
-|---|---|
-| `UNIQUE payout_items.idempotency_key` | `UNIQUE payments.external_ref` + a per-attempt checkout intent key |
-| persist intent → call provider → persist outcome | identical ordering |
-| timeout → `unknown` → reconcile | identical; a timed-out charge is never re-sent blindly |
-| provider dedups on the idempotency key | `MockChargeProvider` dedups the same way |
-
-A double-clicked **Pay** button is the same bug as a double-run payout command, and it gets the
-same answer: **a unique index, not a disabled button.** The disabled button is the Alpine nicety
-on top — the exact UI-layer parallel to D‑10's *constraints for correctness, locks for efficiency*.
-That sentence is why this screen is worth thirty seconds of the video.
-
-**`MockChargeProvider`** is a *separate* interface from `PaymentProvider` — charging a customer
-and transferring to an instructor are different operations with different failure semantics and
-different reversal rules — but it shares the three-outcome behaviour so checkout can demo a
-timeout too.
-
-**On success, checkout does exactly four things:** create `subscription` → record `payment` →
-run `AccrualScheduler` (writes the N `accrual_periods` from D‑1) → redirect. One transaction
-boundary, and the ledger is live.
+`succeeded` after `payouts:reconcile` runs.
 
 ---
 
@@ -707,13 +624,6 @@ being proven. Note this in the README — it is itself a signal of understanding
   instructor balances *untouched*.
 - Hold period: an earning is invisible to `payouts:run` before `available_at`, visible after.
 - Minimum threshold: a below-threshold balance is skipped and carried to the next run.
-- **Checkout double-submit** (D‑11): two concurrent requests with the same intent key → one
-  subscription, one payment, one accrual schedule. This is the inbound twin of the "run twice"
-  proof and belongs in the same test file so a reviewer sees them side by side.
-- **Checkout charge timeout** (D‑11): an unconfirmed charge does *not* activate the subscription;
-  reconciliation either activates it or releases it. Same `unknown` discipline as D‑8, inbound.
-- Feature tests for the five screens are **smoke-level only** — renders, auth guard, happy path.
-  They carry no grade weight and must not consume test-writing time that belongs to the ledger.
 - **Chaos/invariant test** — the headline test: simulate N randomized events (payments, accruals,
   refunds, payout runs with a randomly failing provider, duplicate command invocations,
   re-dispatched jobs), then assert:
@@ -730,7 +640,7 @@ being proven. Note this in the README — it is itself a signal of understanding
 
 **Code**
 - [ ] Migrations for every table in §5, with the constraints in §9
-- [ ] Factories: instructor, course, plan, subscription, payment, engagement, accrual period
+- [ ] Factories: instructor, course, plan, enrolment, subscription, payment, engagement, accrual period
 - [ ] Seeders: `DemoSeeder` (small, for the video) and `ScaleSeeder` (large, for timings)
 - [ ] `Money`, `Allocator`, `config/revenue.php`
 - [ ] Actions: `RecognizeAccrualPeriod`, `AllocatePeriodRevenue`, `ReserveInstructorBalance`,
@@ -738,9 +648,7 @@ being proven. Note this in the README — it is itself a signal of understanding
 - [ ] Commands: `payouts:run`, `payouts:reconcile`, `ledger:accrue`, `ledger:verify`
 - [ ] Jobs: `AccrueSubscriptionPeriodsJob`, `ProcessPayoutItemJob`, `ReconcilePayoutItemJob`
 - [ ] `PaymentProvider` interface + `RandomMockProvider` + `ScriptedMockProvider`
-- [ ] Filament: `InstructorResource` (read-only); `PayoutRunResource` *(stretch)*
-- [ ] `enrolments` migration + factory; `MockChargeProvider`
-- [ ] Student flow (D‑11): Breeze/Livewire auth, catalog, enrol, checkout, my-subscription
+- [ ] Filament: `InstructorResource`, `PayoutRunResource` (read-only)
 
 **Docs**
 - [ ] `README.md` — setup, `php artisan test`, assumptions, why MySQL not SQLite
@@ -762,24 +670,12 @@ being proven. Note this in the README — it is itself a signal of understanding
 | 2 | Accrual: period scheduling, recognition, ledger entries, balance snapshot; `ledger:verify` | accrue runs 3× → identical state |
 | 3 | Payout: runs, items, reserve-before-send, state machine, commands, jobs | `payouts:run` pays a seeded instructor once |
 | 4 | Provider mocks, timeout/`unknown` handling, `payouts:reconcile`, `payout_attempts` | the three required proofs pass |
-| 5 | Refunds (three zones), clawbacks, hold period, minimum threshold; chaos/invariant test; `InstructorResource` | invariant test green; admin screen usable |
-| 6 | **Student flow (D‑11):** Breeze, catalog, enrol, checkout + `MockChargeProvider`, my-subscription | a real signup produces a real ledger |
-| 7 | `README.md`, `ARCHITECTURE.md`, `AI_USAGE.md`, record video, screenshots | submitted |
+| 5 | Refunds (three zones), clawbacks, hold period, minimum threshold; chaos/invariant test | invariant test green over randomized runs |
+| 6 | Filament screens; `ScaleSeeder` + timing pass; `ARCHITECTURE.md`; `README.md` | reviewer could clone and run it |
+| 7 | `AI_USAGE.md`, rehearse and record the video, screenshots, final polish | submitted |
 
-**The cut line is the end of Day 5.** Everything carrying grade weight is finished by then, and
-Day 6 is the only discretionary day in the week. If Day 5 slips, **Day 6 is what gets sacrificed**
-— shrink to checkout + my-subscription (drop catalog and enrolment), or drop the flow entirely.
-**Day 7 is never touched:** docs are 5% and the video is 5%, and an undocumented, unrecorded
-submission scores worse than a smaller one that explains itself.
-
-Day 6 needs a pre-decided escape hatch, because that is the day this plan is most likely to go
-wrong: **if checkout is still fighting you by midday, ship Breeze plus one "subscribe" Livewire
-page and stop.** One well-built component with idempotent checkout proves more about you than
-four half-finished screens.
-
-`ScaleSeeder` and `PayoutRunResource` move to stretch goals — they are the budget D‑11 spends.
-If Day 6 finishes early, build `ScaleSeeder` first: a timing run against ~50k subscriptions is
-worth more in the video than a fifth screen.
+Days 1–5 are the 65% of the grade. If time runs short, the Filament screen shrinks to one
+resource and the scale seeder is dropped — **never** the tests or the docs.
 
 ---
 
@@ -796,25 +692,16 @@ worth more in the video than a fifth screen.
 
 **Demo order** (each ends by showing `ledger:verify` still green):
 
-0. *Setup, ~60 seconds:* sign up as a student, enrol, buy an annual plan — then show the twelve
-   `accrual_periods` that checkout just wrote. This is the student flow's **entire** screen time.
-   It is the premise of the demos, not a segment of its own. If you want it to earn more, spend
-   one extra sentence on the checkout double-submit guard (§13.2) and move on.
 1. `payouts:run` twice → one payment. Show the unique index, not the lock.
 2. Two `payouts:run` processes simultaneously → one run created.
 3. Kill a worker mid-transfer → item stuck `submitted` → `payouts:reconcile` resolves it.
 4. Scripted timeout-after-success → `unknown` in Filament → reconcile → `succeeded`,
    `payout_attempts` shows two interactions, provider shows one transfer.
-5. Refund mid-annual-term — click **Cancel** in the student UI → show that the unearned months
-   were never allocated, and the clawback on the rest.
+5. Refund mid-annual-term → show that unearned months were never allocated; clawback on the rest.
 6. Rounding: pool of 1000 across weights 3/3/3 → 334/333/333, sum exact.
 
 **The line to land:** *"Correctness lives in the database constraints. The locks are only there
 to stop us wasting work."*
-
-**Budget warning.** The student flow gets ~60 seconds (demo 0) plus one sentence in the
-Architecture segment justifying D‑11. If it starts eating minutes, it is eating the failure demos
-— which are 20% of the grade to its 0%. Rehearse with a timer.
 
 ---
 
@@ -872,11 +759,10 @@ the partial period's engagement or the full month's? Naming these is the answer 
 
 | Not built | Reason |
 |---|---|
-| Instructor portal, instructor dashboards, profile management | Zero weight; the Filament screen covers the read case |
-| Real card handling, PCI scope, a live gateway | `MockChargeProvider` proves the *pattern*; a live gateway proves nothing extra and costs days |
-| Lesson/video playback, progress tracking, quizzes, certificates, reviews, search | The D‑11 line: if it doesn't create, end or refund a subscription, it isn't built |
-| Course/lesson authoring (admin CRUD) | Seeded data is sufficient input to the allocator |
-| Password reset, email verification, 2FA beyond Breeze defaults | Framework-default or nothing; hand-rolling auth signals the wrong priorities |
+| Student auth, registration, enrolment UI, checkout | Zero weight; the brief's story starts *after* the student has paid. A thin Livewire slice was considered and withdrawn — the trade-off is that Livewire skill shows only through Filament |
+| Instructor portal and dashboards | Zero weight; the Filament screen covers the read case |
+| Real payment intake, card handling, a live gateway | Payments and refunds are recorded as captured facts, each keyed by a unique external reference |
+| Course/lesson CRUD, video, progress tracking | Seeded data is sufficient input to the allocator |
 | Raw engagement event ingestion | Rollup table is the interface; ingestion is a separate system |
 | Multi-currency / FX | Single currency, `currency` column present for forward compatibility |
 | Tax, VAT, withholding, 1099-equivalents | Real requirement, large, orthogonal — named as a limitation |

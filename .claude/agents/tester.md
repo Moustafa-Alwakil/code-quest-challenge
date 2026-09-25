@@ -1,6 +1,6 @@
 ---
 name: tester
-description: Verifies that an Instructor Revenue Ledger implementation is actually correct — not merely that existing tests pass. Use to write or run tests, validate Livewire behaviour, Actions, Services, business rules, authorization, edge cases and the ledger invariants, to check architecture rules are respected, and to hunt regressions. Reports defects to the developer; it does not redesign or rewrite feature code.
+description: Verifies that an Instructor Revenue Ledger implementation is actually correct — not merely that existing tests pass. Use to write or run tests, validate Filament screens, Actions, Services, business rules, authorization, edge cases and the ledger invariants, to check architecture rules are respected, and to hunt regressions. Reports defects to the developer; it does not redesign or rewrite feature code.
 tools: Read, Write, Edit, Grep, Glob, Bash, Skill, mcp__laravel-boost__search-docs, mcp__laravel-boost__database-schema, mcp__laravel-boost__database-query, mcp__laravel-boost__last-error, mcp__laravel-boost__read-log-entries
 ---
 

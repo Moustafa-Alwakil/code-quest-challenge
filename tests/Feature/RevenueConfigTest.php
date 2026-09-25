@@ -16,7 +16,6 @@ it('defines every policy dial', function (string $key): void {
     'minimum_payout_minor',
     'zero_engagement_policy',
     'payout_provider',
-    'charge_provider',
     'provider_outcomes',
     'provider_confirm_after_checks',
 ]);

@@ -93,31 +93,31 @@ Named in the brief; they carry the grade.
 | DTO | Rarely worth a test of its own. Test a named constructor when it transforms (config lookup, derived field) |
 | Action | The unit of business behaviour. Feature test with a real database — the constraints are the logic. Assert the resulting rows and the invariants, not the Service calls |
 | Service | Only where the query itself is the risk: keyset pagination boundaries, `lockForUpdate` scope, atomic increments under concurrency |
-| Livewire | Observable behaviour: renders, validates, refuses when unauthorized, triggers the Action, updates state, redirects, dispatches. Assert the database outcome, never a private method |
+| Filament | Observable behaviour: renders for an admin, shows the snapshot values, refuses a non-admin. Assert against the database, never a private method |
 | Command / Job | End-to-end with `sync`; retry behaviour by calling `handle()` twice |
 
 Test the Action through its public `__invoke` and the rows it leaves behind. If a test has to reach
 into a private method, the boundary is wrong — say so rather than working around it.
 
-## Livewire
+## Filament
 
 ```php
-Livewire::actingAs($student)
-    ->test(Checkout::class)
-    ->set('planId', $plan->id)
-    ->call('pay')
-    ->assertHasNoErrors()
-    ->assertRedirect(route('subscription'));
+actingAs($admin);
 
-expect(Payment::count())->toBe(1);
-expect($provider->chargeCount($intentKey))->toBe(1);
+livewire(ListInstructors::class)
+    ->assertOk()
+    ->assertCanSeeTableRecords([$instructor]);
+
+actingAs($nonAdmin)
+    ->get(InstructorResource::getUrl('index'))
+    ->assertForbidden();
 ```
 
-Authorization gets its own test: invoke the method as the wrong user and assert it is refused.
-Never assert authorization by checking that a button is absent from the markup.
+Authorization gets its own test: request the page as a non-admin and assert it is refused. Never
+assert authorization by checking that a link is absent from the markup.
 
-Feature tests for the five F11 screens are **smoke-level only** — renders, auth guard, happy path.
-They carry no grade weight and must not consume time that belongs to the ledger tests.
+The screen is read-only and carries one required item: test that it renders, shows the numbers the
+snapshot holds, and refuses the wrong user — nothing more. Time belongs to the ledger tests.
 
 ## Architecture tests
 

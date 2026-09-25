@@ -7,45 +7,10 @@ invokes an Action, handles the result in whatever way suits its medium.
 
 ### Livewire component
 
-```php
-final class Checkout extends Component
-{
-    #[Locked]
-    public string $intentKey;
-
-    public int $planId = 0;
-
-    public function mount(): void
-    {
-        $this->intentKey = (string) Str::uuid();
-    }
-
-    public function pay(StartCheckoutAction $action): void
-    {
-        $this->authorize('subscribe', Subscription::class);
-
-        $validated = $this->validate([
-            'planId' => ['required', 'integer', 'exists:plans,id'],
-        ]);
-
-        $result = $action(StartCheckoutData::fromLivewire(
-            userId: auth()->id(),
-            planId: (int) $validated['planId'],
-            intentKey: $this->intentKey,
-        ));
-
-        match ($result->status) {
-            CheckoutStatus::Succeeded => $this->redirect(route('subscription'), navigate: true),
-            CheckoutStatus::Pending   => $this->confirming = true,
-            CheckoutStatus::Failed    => $this->addError('payment', $result->message),
-        };
-    }
-}
-```
-
-UI concerns that belong here and nowhere deeper: loading and disabled state, flash notifications,
-redirects, dispatched browser events, error message wording, `wire:poll` while a charge is
-`pending`.
+None are planned: the student flow (D‑11) was withdrawn (R25), and the only UI is the read-only
+Filament screen. If a component is ever added, it follows the same contract as a command below —
+validate, authorize, build the DTO, invoke the Action, handle the result — and keeps only UI
+concerns (loading state, notifications, redirects, error wording) for itself.
 
 ### Artisan command
 
@@ -113,7 +78,7 @@ Dispatch with `afterCommit()` so a job can never observe uncommitted state.
 ### Filament
 
 Read-only resources. If an operator action ever moves money, it invokes an Action with a DTO,
-exactly like a Livewire component.
+exactly like a command.
 
 ## DTO
 
