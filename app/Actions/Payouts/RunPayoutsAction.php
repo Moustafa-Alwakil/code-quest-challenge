@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Actions\Payouts;
 
 use App\Actions\Accrual\ReleaseMaturedEarningsAction;
+use App\Contracts\PayoutRunServiceContract;
 use App\DTOs\Payouts\ReserveInstructorBalanceData;
 use App\DTOs\Payouts\RunPayoutsData;
 use App\Enums\PayoutRunStatus;
 use App\Jobs\ProcessPayoutItemJob;
-use App\Services\Contracts\PayoutRunServiceContract;
 use App\Support\Payouts\PayoutRunSnapshot;
 use App\Support\Payouts\PayoutRunSummary;
 use Illuminate\Bus\Batch;

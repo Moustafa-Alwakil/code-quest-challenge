@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Contracts;
+namespace App\Contracts;
 
 use App\Enums\TransferStatus;
 use App\Models\MockProviderTransfer;

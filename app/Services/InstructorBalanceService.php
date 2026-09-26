@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\EarningAllocationServiceContract;
+use App\Contracts\InstructorBalanceServiceContract;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
 use App\Models\InstructorBalance;
 use App\Models\LedgerEntry;
-use App\Services\Contracts\EarningAllocationServiceContract;
-use App\Services\Contracts\InstructorBalanceServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\BalanceTotals;
 use Illuminate\Support\Facades\DB;

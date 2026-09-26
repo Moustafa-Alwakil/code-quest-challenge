@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\SubscriptionServiceContract;
 use App\Enums\SubscriptionStatus;
 use App\Models\Payment;
 use App\Models\Subscription;
-use App\Services\Contracts\SubscriptionServiceContract;
 use App\Support\Money;
 use App\Support\Refunds\SubscriptionForRefund;
 use App\Support\Subscriptions\BulkTerm;

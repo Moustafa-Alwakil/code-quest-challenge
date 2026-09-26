@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Subscriptions\SubscribeStudentAction;
+use App\Contracts\AccrualServiceContract;
 use App\DTOs\Subscriptions\SubscribeStudentData;
 use App\Enums\AccrualPeriodStatus;
 use App\Enums\LedgerAccountType;
@@ -14,7 +15,6 @@ use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Services\Contracts\AccrualServiceContract;
 use App\Support\Accrual\AccrualSchedule;
 use App\Support\Money;
 use App\Support\Subscriptions\SubscriptionOutcome;

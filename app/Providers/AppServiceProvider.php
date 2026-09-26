@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts;
 use App\Services\AccrualService;
-use App\Services\Contracts;
 use App\Services\EarningAllocationService;
 use App\Services\EngagementService;
 use App\Services\InstructorBalanceService;

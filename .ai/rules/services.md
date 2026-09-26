@@ -6,7 +6,9 @@ paths:
 # Services
 
 ## Every aggregate is reached through its contract
-`app/Services/Contracts/` holds one interface per aggregate (`LedgerServiceContract`, `AccrualServiceContract`, …), bound to its implementation by the table in `AppServiceProvider::AGGREGATES`. Actions, jobs, commands and Filament type-hint the **contract**; only that binding table names both sides, and an arch test says so.
+`app/Contracts/` holds one interface per aggregate (`LedgerServiceContract`, `AccrualServiceContract`, …), bound to its implementation by the table in `AppServiceProvider::AGGREGATES`. Actions, jobs, commands and Filament type-hint the **contract**; only that binding table names both sides, and an arch test says so.
+
+Contracts sit at `app/Contracts/`, beside `app/Services/` rather than inside it. A contract is what the *rest of the application* depends on — putting it under the implementation's own directory would have said the opposite, and would have meant `App\Services` covered both the thing to depend on and the thing not to.
 
 Services are `final`, and a `final` class cannot be doubled — so until the contracts existed, R14's promise that an Action is "unit-testable against a faked Service" was unreachable. Adding a method means adding it in two places; that is the price, and it is the reminder that a Service's public surface is an interface whether or not it is written down (R48).
 

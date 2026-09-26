@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\AccrualServiceContract;
 use App\Enums\AccrualPeriodStatus;
 use App\Models\AccrualPeriod;
-use App\Services\Contracts\AccrualServiceContract;
 use App\Support\Accrual\AccrualSchedule;
 use App\Support\Accrual\PeriodForRecognition;
 use App\Support\Accrual\SchedulePeriod;

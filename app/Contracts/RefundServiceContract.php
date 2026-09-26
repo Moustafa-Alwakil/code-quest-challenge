@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Contracts;
+namespace App\Contracts;
 
 use App\Enums\RefundType;
 use Carbon\CarbonImmutable;

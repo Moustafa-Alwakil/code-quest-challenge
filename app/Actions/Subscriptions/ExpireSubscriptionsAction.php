@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Subscriptions;
 
+use App\Contracts\SubscriptionServiceContract;
 use App\DTOs\Subscriptions\ExpireSubscriptionsData;
-use App\Services\Contracts\SubscriptionServiceContract;
 use Illuminate\Support\Facades\DB;
 
 /**

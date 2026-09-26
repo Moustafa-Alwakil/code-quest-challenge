@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\MockProviderStoreContract;
 use App\Enums\TransferStatus;
 use App\Exceptions\ProviderTimeoutException;
-use App\Services\Contracts\MockProviderStoreContract;
 use App\Support\Payouts\TransferResult;
 use InvalidArgumentException;
 

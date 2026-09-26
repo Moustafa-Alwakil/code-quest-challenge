@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\PlanServiceContract;
 use App\Models\Plan;
-use App\Services\Contracts\PlanServiceContract;
 use App\Support\Money;
 use App\Support\Subscriptions\PlanTerms;
 use Illuminate\Database\Eloquent\ModelNotFoundException;

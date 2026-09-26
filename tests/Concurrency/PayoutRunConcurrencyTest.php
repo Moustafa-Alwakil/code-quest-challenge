@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Payouts\ReserveInstructorBalanceAction;
+use App\Contracts\PayoutRunServiceContract;
 use App\DTOs\Payouts\ReserveInstructorBalanceData;
 use App\Models\AccrualPeriod;
 use App\Models\Instructor;
@@ -12,7 +13,6 @@ use App\Models\PayoutItem;
 use App\Models\PayoutRun;
 use App\Models\Plan;
 use App\Models\User;
-use App\Services\Contracts\PayoutRunServiceContract;
 use App\Support\Payouts\ReservationOutcome;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;

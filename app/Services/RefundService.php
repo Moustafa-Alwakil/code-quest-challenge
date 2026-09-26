@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\RefundServiceContract;
 use App\Enums\RefundType;
 use App\Models\Refund;
-use App\Services\Contracts\RefundServiceContract;
 use Carbon\CarbonImmutable;
 
 /**

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions\Accrual;
 
+use App\Contracts\AccrualServiceContract;
+use App\Contracts\EarningAllocationServiceContract;
+use App\Contracts\EngagementServiceContract;
+use App\Contracts\LedgerServiceContract;
 use App\DTOs\Accrual\RecognizePeriodData;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
-use App\Services\Contracts\AccrualServiceContract;
-use App\Services\Contracts\EarningAllocationServiceContract;
-use App\Services\Contracts\EngagementServiceContract;
-use App\Services\Contracts\LedgerServiceContract;
 use App\Support\Accrual\PeriodForRecognition;
 use App\Support\Accrual\RecognitionOutcome;
 use App\Support\Allocator;

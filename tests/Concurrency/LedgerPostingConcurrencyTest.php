@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Contracts\LedgerServiceContract;
 use App\Models\Instructor;
 use App\Models\InstructorBalance;
 use App\Models\LedgerEntry;
-use App\Services\Contracts\LedgerServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use Illuminate\Database\Connection;
 use Tests\Support\Interleaved;

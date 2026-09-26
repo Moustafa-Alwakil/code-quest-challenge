@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\InstructorBalanceServiceContract;
+use App\Contracts\LedgerServiceContract;
 use App\Enums\LedgerAccountType;
 use App\Exceptions\LedgerIntegrityException;
 use App\Models\LedgerEntry;
-use App\Services\Contracts\InstructorBalanceServiceContract;
-use App\Services\Contracts\LedgerServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;

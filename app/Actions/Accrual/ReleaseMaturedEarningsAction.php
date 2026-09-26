@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Accrual;
 
+use App\Contracts\EarningAllocationServiceContract;
+use App\Contracts\InstructorBalanceServiceContract;
 use App\DTOs\Accrual\ReleaseMaturedEarningsData;
-use App\Services\Contracts\EarningAllocationServiceContract;
-use App\Services\Contracts\InstructorBalanceServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use Illuminate\Support\Facades\DB;
 

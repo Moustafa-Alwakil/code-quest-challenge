@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\EngagementServiceContract;
 use App\Models\Engagement;
-use App\Services\Contracts\EngagementServiceContract;
 use Carbon\CarbonImmutable;
 
 /**

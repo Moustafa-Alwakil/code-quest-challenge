@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Payouts\ReserveInstructorBalanceAction;
+use App\Contracts\PayoutRunServiceContract;
 use App\DTOs\Payouts\ReserveInstructorBalanceData;
 use App\Enums\PayoutItemStatus;
 use App\Enums\PayoutRunStatus;
@@ -10,7 +11,6 @@ use App\Models\Instructor;
 use App\Models\InstructorBalance;
 use App\Models\PayoutItem;
 use App\Models\PayoutRun;
-use App\Services\Contracts\PayoutRunServiceContract;
 use Carbon\CarbonImmutable;
 
 /*

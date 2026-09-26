@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Contracts\LedgerServiceContract;
 use App\Exceptions\LedgerIntegrityException;
-use App\Services\Contracts\LedgerServiceContract;
 use Tests\Support\LedgerPostings;
 use Tests\TestCase;
 

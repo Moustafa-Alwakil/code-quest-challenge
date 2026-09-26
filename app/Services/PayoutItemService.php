@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\PayoutItemServiceContract;
 use App\Enums\PayoutAttemptOperation;
 use App\Enums\PayoutItemStatus;
 use App\Models\PayoutItem;
-use App\Services\Contracts\PayoutItemServiceContract;
 use App\Support\Payouts\PayoutItemSnapshot;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;

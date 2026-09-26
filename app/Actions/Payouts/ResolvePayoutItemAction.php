@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Payouts;
 
+use App\Contracts\PayoutItemServiceContract;
 use App\DTOs\Payouts\ResolvePayoutItemData;
 use App\Enums\PayoutAttemptOperation;
 use App\Enums\PayoutItemStatus;
-use App\Services\Contracts\PayoutItemServiceContract;
 use App\Support\Payouts\PayoutItemSnapshot;
 use InvalidArgumentException;
 

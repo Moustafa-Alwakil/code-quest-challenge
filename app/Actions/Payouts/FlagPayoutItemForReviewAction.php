@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Payouts;
 
-use App\Services\Contracts\PayoutItemServiceContract;
+use App\Contracts\PayoutItemServiceContract;
 use Illuminate\Support\Facades\DB;
 
 /**

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Services\Contracts\EarningAllocationServiceContract;
+use App\Contracts\EarningAllocationServiceContract;
 use App\Support\Refunds\AllocationLine;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;

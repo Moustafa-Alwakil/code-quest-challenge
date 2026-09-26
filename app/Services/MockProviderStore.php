@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\MockProviderStoreContract;
 use App\Enums\TransferStatus;
 use App\Models\MockProviderTransfer;
-use App\Services\Contracts\MockProviderStoreContract;
 use App\Support\Payouts\TransferResult;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;

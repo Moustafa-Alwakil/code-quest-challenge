@@ -134,6 +134,8 @@ it('has no job whose constructor takes anything but scalars', function (): void 
 /**
  * A custom Eloquent builder is the model's own query surface, so it names its
  * model by necessity — `App\Builders` is admitted for that reason alone (R23).
+ * `App\Contracts` is admitted on the same grounds (R48): an aggregate's
+ * contract has to name what its methods return, and some of them return models.
  * `App\Filament\Admin\Resources` is admitted on the same reasoning (R39): a
  * resource *is* a model's read-only admin surface, and Filament binds one to
  * the other by class name.
@@ -146,6 +148,7 @@ arch('only services touch eloquent')
     ->expect('App\Models')
     ->toOnlyBeUsedIn([
         'App\Services',
+        'App\Contracts',
         'App\Models',
         'App\Builders',
         'App\Filament\Admin\Resources',
@@ -203,7 +206,6 @@ arch('entry points go through actions')
  */
 it('reaches every service through its contract', function (): void {
     $concrete = collect(File::allFiles(app_path('Services')))
-        ->reject(fn ($file): bool => str_contains($file->getRelativePathname(), 'Contracts'))
         ->map(fn ($file): string => Str::before($file->getFilename(), '.php'))
         /** The provider contract and its two mocks are already an interface and its implementations. */
         ->reject(fn (string $class): bool => in_array($class, ['PaymentProvider', 'RandomMockProvider', 'ScriptedMockProvider'], true))
@@ -234,7 +236,7 @@ it('reaches every service through its contract', function (): void {
  * in the dependency graph.
  */
 arch('contracts are interfaces that name no implementation')
-    ->expect('App\Services\Contracts')
+    ->expect('App\Contracts')
     ->toBeInterfaces();
 
 /**

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Accrual;
 
+use App\Contracts\AccrualServiceContract;
 use App\DTOs\Accrual\AccrueRevenueData;
 use App\Jobs\AccruePeriodsChunkJob;
-use App\Services\Contracts\AccrualServiceContract;
 use App\Support\Accrual\AccrualRunSummary;
 use Illuminate\Support\Facades\Bus;
 

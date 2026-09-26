@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Payouts;
 
+use App\Contracts\LedgerServiceContract;
+use App\Contracts\PayoutRunServiceContract;
 use App\DTOs\Payouts\ReserveInstructorBalanceData;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
-use App\Services\Contracts\LedgerServiceContract;
-use App\Services\Contracts\PayoutRunServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;

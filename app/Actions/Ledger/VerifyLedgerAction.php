@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Ledger;
 
+use App\Contracts\LedgerVerificationServiceContract;
 use App\DTOs\Ledger\VerifyLedgerData;
-use App\Services\Contracts\LedgerVerificationServiceContract;
 use App\Support\Ledger\LedgerVerificationResult;
 
 /**
