@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Models\Payment;
+use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Schema;
 
@@ -125,17 +127,21 @@ it('refuses a second payment with the same external_ref, in the database', funct
     expect(Payment::query()->count())->toBe(1);
 });
 
+/*
+ * Built through the action rather than from a factory, because the schedule is
+ * the thing under test and only the action writes a real one. A factory
+ * subscription carrying hand-made periods claims a liability the ledger never
+ * recorded, which `ledger:verify` check 5 reports as the inconsistency it is —
+ * correct behaviour, and not what this test is about (F02, Factories).
+ */
 it('refuses a second period with the same sequence, in the database', function (): void {
-    $subscription = Subscription::factory()->create();
+    $plan = Plan::factory()->monthly()->create();
+    $outcome = recordCapturedPayment(User::factory()->create(), $plan, 'ch_live_seq_0001');
 
-    $subscription->accrualPeriods()->create([
-        'sequence' => 1,
-        'period_start' => '2024-01-31',
-        'period_end' => '2024-02-29',
-        'days' => 29,
-        'gross_minor' => 25_000,
-        'status' => 'scheduled',
-    ]);
+    $subscription = Subscription::query()->findOrFail($outcome->subscriptionId);
+
+    /** The monthly term already owns sequence 1; a second one is the collision. */
+    expect($subscription->accrualPeriods()->where('sequence', 1)->count())->toBe(1);
 
     expect(fn () => $subscription->accrualPeriods()->create([
         'sequence' => 1,

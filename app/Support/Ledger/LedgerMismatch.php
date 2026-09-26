@@ -25,6 +25,10 @@ final readonly class LedgerMismatch
 
     public const CHECK_CURRENCY = 'snapshot currency';
 
+    public const CHECK_DEFERRED_REVENUE = 'deferred revenue';
+
+    public const CHECK_PERIOD_SPLIT = 'period split';
+
     /**
      * Values are carried as strings because not every snapshot field is a
      * number — `currency` is one too (R21). `deltaMinor` is null exactly when
@@ -99,6 +103,39 @@ final readonly class LedgerMismatch
     public static function currency(int $instructorId, string $expected, string $actual): self
     {
         return new self(self::CHECK_CURRENCY, "instructor {$instructorId}", 'currency', $expected, $actual, null);
+    }
+
+    /**
+     * Check 5 (I5) — a subscription whose periods are all recognized or
+     * cancelled has delivered everything it was paid for, so its liability is
+     * back to exactly 0. A *negative* balance means more revenue was recognized
+     * than the student ever paid, which no amount of rounding can excuse.
+     */
+    public static function deferredRevenue(int $subscriptionId, int $expectedMinor, int $actualMinor): self
+    {
+        return self::ofMinor(
+            self::CHECK_DEFERRED_REVENUE,
+            "subscription {$subscriptionId}",
+            'deferred_revenue owed',
+            $expectedMinor,
+            $actualMinor,
+        );
+    }
+
+    /**
+     * Check 6 (I6) — a recognized period gave every piastre of its gross to
+     * exactly one of the platform or an instructor. This is the check that
+     * catches a dropped allocation row or a re-rounded pool.
+     */
+    public static function periodSplit(int $periodId, int $grossMinor, int $platformPlusAllocatedMinor): self
+    {
+        return self::ofMinor(
+            self::CHECK_PERIOD_SPLIT,
+            "accrual period {$periodId}",
+            'platform + sum(allocations)',
+            $grossMinor,
+            $platformPlusAllocatedMinor,
+        );
     }
 
     /**

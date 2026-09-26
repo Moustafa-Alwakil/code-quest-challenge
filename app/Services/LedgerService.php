@@ -158,6 +158,41 @@ final class LedgerService
     }
 
     /**
+     * What each of the given subscriptions is still owed in undelivered time —
+     * the balance of its `deferred_revenue` account (R5), for verify check 5.
+     *
+     * Liabilities are credit-normal, so "owed" is the negated sum. A
+     * subscription with no entries is absent from the result rather than
+     * present at zero: the caller knows which ids it asked about, and
+     * conflating "nothing posted" with "settled to zero" is the distinction the
+     * check exists to make.
+     *
+     * @param  list<int>       $subscriptionIds
+     * @return array<int, int> subscription id => owed minor units
+     */
+    public function deferredRevenueOwedFor(array $subscriptionIds): array
+    {
+        if ($subscriptionIds === []) {
+            return [];
+        }
+
+        $owed = [];
+
+        $rows = DB::table('ledger_entries')
+            ->selectRaw('account_id, sum(amount_minor) as sum_minor')
+            ->where('account_type', LedgerAccountType::DEFERRED_REVENUE->value)
+            ->whereIn('account_id', $subscriptionIds)
+            ->groupBy('account_id')
+            ->get();
+
+        foreach ($rows as $row) {
+            $owed[self::asInt($row->account_id)] = -self::asInt($row->sum_minor);
+        }
+
+        return $owed;
+    }
+
+    /**
      * A raw aggregate comes back untyped — MySQL hands SUM() over as a string.
      * Narrowing it here, loudly, beats trusting a cast: if the driver ever
      * returns something else, the run fails instead of silently reading 0.

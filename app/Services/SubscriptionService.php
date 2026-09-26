@@ -77,6 +77,28 @@ final class SubscriptionService
     }
 
     /**
+     * The next page of subscription ids, for a verification run that has to
+     * visit every term.
+     *
+     * Keyset (`WHERE id > ?`), never OFFSET: the set is large and a run that
+     * re-counted from the start on every page would be quadratic.
+     *
+     * @return list<int> ascending
+     */
+    public function idsAfter(int $afterId, int $limit): array
+    {
+        /** @var list<int> $ids */
+        $ids = Subscription::query()
+            ->where('id', '>', $afterId)
+            ->orderBy('id')
+            ->limit($limit)
+            ->pluck('id')
+            ->all();
+
+        return $ids;
+    }
+
+    /**
      * Closes off one bounded batch of finished terms.
      *
      * A conditional `UPDATE ... WHERE status = 'active'`, so it is idempotent by

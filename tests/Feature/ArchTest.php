@@ -62,8 +62,9 @@ arch('debugging helpers never ship')
 |--------------------------------------------------------------------------
 |
 | Added as F03 creates App\Actions, App\DTOs, App\Services and
-| App\Console\Commands. App\Livewire, App\Jobs and App\Filament get their rules
-| when those namespaces gain classes — arch() errors on an empty namespace.
+| App\Console\Commands, and extended by F05 for App\Jobs. App\Livewire and
+| App\Filament get their rules when those namespaces gain classes — arch()
+| errors on an empty namespace.
 |
 */
 
@@ -87,6 +88,48 @@ arch('dtos are readonly contracts')
     ->toBeReadonly()
     ->toBeFinal()
     ->not->toUse(['App\Models', 'Illuminate']);
+
+/**
+ * A job is an entry point like a command or a component (R15): it rebuilds a
+ * DTO from scalars and invokes an Action. Reaching for a Service or a model
+ * from `handle()` would put the use case in the queue payload's class rather
+ * than in the layer the rest of the system shares.
+ */
+arch('jobs are queued entry points')
+    ->expect('App\Jobs')
+    ->toBeFinal()
+    ->toHaveSuffix('Job')
+    ->toImplement('Illuminate\\Contracts\\Queue\\ShouldQueue')
+    ->not->toUse([
+        'App\Services',
+        'App\Models',
+        'Illuminate\Support\Facades\DB',
+    ]);
+
+/**
+ * A serialized payload goes stale when a deploy lands mid-queue, so a job
+ * carries ids, scalars and the instant its dispatch resolved — never a DTO, a
+ * model or a Carbon (R15, R27). This reads the constructor rather than the
+ * class body, because that is where the payload is decided.
+ */
+it('has no job whose constructor takes anything but scalars', function (): void {
+    $offenders = [];
+
+    foreach (File::allFiles(app_path('Jobs')) as $file) {
+        $class = 'App\\Jobs\\'.Str::before($file->getFilename(), '.php');
+        $constructor = (new ReflectionClass($class))->getConstructor();
+
+        foreach ($constructor?->getParameters() ?? [] as $parameter) {
+            $type = $parameter->getType();
+
+            if ($type instanceof ReflectionNamedType && ! $type->isBuiltin()) {
+                $offenders[] = $class.'::__construct($'.$parameter->getName().': '.$type->getName().')';
+            }
+        }
+    }
+
+    expect($offenders)->toBe([], 'A job constructor takes ids and scalars only: an object in the payload is a deploy away from being wrong.');
+});
 
 /**
  * A custom Eloquent builder is the model's own query surface, so it names its

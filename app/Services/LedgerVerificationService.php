@@ -15,11 +15,16 @@ use App\Support\Ledger\LedgerVerificationResult;
  * The snapshot exists for O(1) reads, which makes it a cache; a cache nobody
  * checks is a second source of truth waiting to drift. This is the check.
  *
- * Scope today is checks 1-4, with check 3 covering `currency` as well as the six
- * money columns (R21). Check 5 — `deferred_revenue[sub]` returning to exactly 0
- * once every period is recognized or cancelled — needs the subscription periods
- * that arrive with F04, and `held` recomputes to 0 until F05 brings
- * `earning_allocations` (R2). Both are follow-ups, not omissions.
+ * Six checks, covering invariants I1-I6. Check 3 covers `currency` as well as
+ * the six money columns (R21), and its `held_minor` comparison is only
+ * meaningful from F05 onward, when `earning_allocations` gives the hold
+ * somewhere to be recomputed from (R2, R20).
+ *
+ * Checks 5 and 6 are the subscription- and period-level statements the
+ * per-instructor checks cannot make: that a delivered term's liability returned
+ * to exactly zero, and that a recognized period gave away precisely its gross.
+ * Both are skipped under `--instructor=`, like checks 1 and 2, because neither
+ * is a fact about one instructor.
  */
 final class LedgerVerificationService
 {
@@ -28,6 +33,9 @@ final class LedgerVerificationService
     public function __construct(
         private LedgerService $ledger,
         private InstructorBalanceService $balances,
+        private AccrualService $accrual,
+        private EarningAllocationService $allocations,
+        private SubscriptionService $subscriptions,
     ) {}
 
     /**
@@ -130,6 +138,24 @@ final class LedgerVerificationService
             }
         }
 
+        if ($instructorId === null) {
+            foreach ($this->deferredRevenueMismatches($chunkSize) as $mismatch) {
+                $mismatches[] = $mismatch;
+
+                if ($failFast) {
+                    return $this->result($mismatches, $instructorId, $transactionsChecked, $instructorsChecked, true);
+                }
+            }
+
+            foreach ($this->periodSplitMismatches($chunkSize) as $mismatch) {
+                $mismatches[] = $mismatch;
+
+                if ($failFast) {
+                    return $this->result($mismatches, $instructorId, $transactionsChecked, $instructorsChecked, true);
+                }
+            }
+        }
+
         return $this->result($mismatches, $instructorId, $transactionsChecked, $instructorsChecked, false);
     }
 
@@ -192,6 +218,90 @@ final class LedgerVerificationService
             'reserved_minor' => $snapshot->reserved_minor,
             'paid_minor' => $snapshot->paid_minor,
         ];
+    }
+
+    /**
+     * Check 5 (I5) — every subscription's liability against the time it has not
+     * delivered yet.
+     *
+     * The sharper form of "deferred revenue returns to zero". Rather than
+     * waiting until the term is over to compare against 0, this asserts the
+     * liability equals Σ gross of the periods still `scheduled` *at every
+     * moment*: recognition removes a period from that sum and the same amount
+     * from that balance in one transaction, so the two can only disagree if a
+     * recognition posted a different gross than it recognized, or posted twice.
+     *
+     * A negative balance is caught by the same comparison — a sum of gross is
+     * never negative — so the "never negative" half of I5 needs no separate
+     * pass.
+     *
+     * Iterated over subscriptions rather than over `deferred_revenue` accounts,
+     * because the invariant is a statement about a term. An account keyed to no
+     * subscription is outside what this check can say anything about.
+     *
+     * @return list<LedgerMismatch>
+     */
+    private function deferredRevenueMismatches(int $chunkSize): array
+    {
+        $mismatches = [];
+        $afterId = 0;
+
+        while (true) {
+            $subscriptionIds = $this->subscriptions->idsAfter($afterId, $chunkSize);
+
+            if ($subscriptionIds === []) {
+                return $mismatches;
+            }
+
+            $afterId = $subscriptionIds[count($subscriptionIds) - 1];
+
+            $owed = $this->ledger->deferredRevenueOwedFor($subscriptionIds);
+            $undelivered = $this->accrual->unrecognizedGrossFor($subscriptionIds);
+
+            foreach ($subscriptionIds as $subscriptionId) {
+                $expected = $undelivered[$subscriptionId] ?? 0;
+                $actual = $owed[$subscriptionId] ?? 0;
+
+                if ($expected !== $actual) {
+                    $mismatches[] = LedgerMismatch::deferredRevenue($subscriptionId, $expected, $actual);
+                }
+            }
+        }
+    }
+
+    /**
+     * Check 6 (I6) — `platform + Σ allocations === gross`, per recognized
+     * period.
+     *
+     * The one check that looks at how a period was *divided* rather than at
+     * what the division summed to overall. A dropped allocation row leaves the
+     * ledger balanced and every snapshot consistent — only this notices.
+     *
+     * @return list<LedgerMismatch>
+     */
+    private function periodSplitMismatches(int $chunkSize): array
+    {
+        $mismatches = [];
+        $afterPeriodId = 0;
+
+        while (true) {
+            $splits = $this->accrual->recognizedSplits($afterPeriodId, $chunkSize);
+
+            if ($splits === []) {
+                return $mismatches;
+            }
+
+            $allocated = $this->allocations->allocatedTotalsForPeriods(array_keys($splits));
+
+            foreach ($splits as $periodId => $split) {
+                $afterPeriodId = $periodId;
+                $accountedFor = $split['platform'] + ($allocated[$periodId] ?? 0);
+
+                if ($accountedFor !== $split['gross']) {
+                    $mismatches[] = LedgerMismatch::periodSplit($periodId, $split['gross'], $accountedFor);
+                }
+            }
+        }
     }
 
     /**

@@ -28,6 +28,17 @@ final class InstructorBalanceService
     private const DEFAULT_CHUNK_SIZE = 1000;
 
     /**
+     * The hold is allocation state, not a ledger fact (R2), so the one snapshot
+     * field the ledger cannot account for is sourced from the allocations
+     * aggregate. A downward, read-only dependency: allocations know nothing
+     * about balances, so the graph stays acyclic and neither Service opens a
+     * transaction (R18).
+     */
+    public function __construct(
+        private EarningAllocationService $allocations,
+    ) {}
+
+    /**
      * What the ledger says about an instructor it has never mentioned.
      *
      * @return array{earned: int, clawed_back: int, held: int, available: int, reserved: int, paid: int, currencies: list<string>}
@@ -118,11 +129,12 @@ final class InstructorBalanceService
      * entries in — empty when they have none, more than one when something has
      * gone badly wrong.
      *
-     * `held` recomputes to 0 here, which is correct today: the hold lives on
-     * `earning_allocations` rows (R2), and that table arrives with F05. When it
-     * does, `held` becomes the sum of allocations with neither `released_at`
-     * nor `clawed_back_at` set, and `available` follows it. `tests/Feature/
-     * Ledger/HeldBalanceGapTest.php` goes red on that day (R20).
+     * `held` is the one field the ledger cannot answer for: the hold lives on
+     * `earning_allocations` rows and posts no entries of its own (R2). It is
+     * the sum of allocations with neither `released_at` nor `clawed_back_at`
+     * set, and `available` — the owed balance of `instructor_payable[i]` less
+     * what is still held — follows from it. This is the recomputation R20
+     * promised F05 would supply.
      *
      * @return array<int, array{earned: int, clawed_back: int, held: int, available: int, reserved: int, paid: int, currencies: list<string>}>
      */
@@ -185,6 +197,18 @@ final class InstructorBalanceService
             }
         }
 
+        /**
+         * An instructor can hold money the ledger has no entry for only if an
+         * allocation row exists without its posting — which is the corruption
+         * this check is for, so the row is folded in rather than skipped.
+         */
+        foreach ($this->allocations->heldTotals($instructorId, $chunkSize) as $instructor => $heldMinor) {
+            $totals[$instructor] ??= self::zeroTotals();
+            $payableOwed[$instructor] ??= 0;
+            $currencies[$instructor] ??= [];
+            $totals[$instructor]['held'] = $heldMinor;
+        }
+
         foreach ($totals as $instructor => $fields) {
             $totals[$instructor]['available'] = $payableOwed[$instructor] - $fields['held'];
 
@@ -192,6 +216,8 @@ final class InstructorBalanceService
             sort($distinct);
             $totals[$instructor]['currencies'] = $distinct;
         }
+
+        ksort($totals);
 
         return $totals;
     }

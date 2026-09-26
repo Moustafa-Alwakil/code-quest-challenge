@@ -31,8 +31,15 @@ final class Allocator
     private const MAX_WEIGHT = 1_000_000;
 
     /**
-     * @param  array<array-key, int> $weights
-     * @return array<array-key, int> every input key, in input order
+     * The key type is carried through rather than flattened to `array-key`:
+     * callers weight by instructor id or by period sequence and then look the
+     * result up by that same id, so "every input key, in input order" is part
+     * of the contract, not an implementation detail.
+     *
+     * @template TKey of array-key
+     *
+     * @param  array<TKey, int> $weights
+     * @return array<TKey, int> every input key, in input order
      *
      * @throws ZeroWeightException      when every weight is zero
      * @throws InvalidArgumentException on a negative total or weight
