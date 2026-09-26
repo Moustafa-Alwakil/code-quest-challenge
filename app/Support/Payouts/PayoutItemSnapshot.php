@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Payouts;
 
 use App\Enums\PayoutItemStatus;
+use Carbon\CarbonImmutable;
 
 /**
  * What an Action needs to know about one payout item (F07).
@@ -14,7 +15,9 @@ use App\Enums\PayoutItemStatus;
  * would put a live query surface into the use-case layer.
  *
  * `accountRef` comes along because the provider needs it and the Action is not
- * allowed to go and fetch it.
+ * allowed to go and fetch it. `submittedAt` comes along because both of
+ * reconciliation's windows — the `not_found` grace and the 24-hour cap — are
+ * measured from it (F08).
  */
 final readonly class PayoutItemSnapshot
 {
@@ -28,5 +31,6 @@ final readonly class PayoutItemSnapshot
         public string $idempotencyKey,
         public string $accountRef,
         public int $attempts,
+        public ?CarbonImmutable $submittedAt = null,
     ) {}
 }

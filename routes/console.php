@@ -44,3 +44,16 @@ Schedule::command('payouts:run')
     ->monthlyOn(1, '03:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+/*
+ * Reconciliation (F08). Every five minutes, because an `unknown` payout has
+ * money frozen in `provider_in_transit` and the only way to unfreeze it is to
+ * ask the provider again.
+ *
+ * `withoutOverlapping` is an optimization like every other lock here: two
+ * concurrent sweeps would still settle each item once, because the status
+ * compare-and-swap and the ledger's unique key decide, not the lock.
+ */
+Schedule::command('payouts:reconcile')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();

@@ -235,7 +235,12 @@ final class ProcessPayoutItemAction
 
     private function park(PayoutItemSnapshot $item, string $reason): PayoutItemStatus
     {
-        $this->payoutItems->markUnknown($item->id, CarbonImmutable::now(), $reason);
+        /**
+         * One minute, not the reconciliation ladder: this is the *first* thing
+         * that went wrong, and the answer usually exists within seconds. F08
+         * backs off from here if it keeps not arriving.
+         */
+        $this->payoutItems->markUnknown($item->id, CarbonImmutable::now()->addMinute(), $reason);
 
         return PayoutItemStatus::UNKNOWN;
     }

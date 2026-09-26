@@ -34,12 +34,6 @@ final class PayoutItemService
      */
     private const SUBMITTED_RECHECK_MINUTES = 10;
 
-    /**
-     * An unknown outcome is chased sooner: the money is already out and the
-     * only way to learn where it went is to ask again.
-     */
-    private const UNKNOWN_RECHECK_MINUTES = 1;
-
     public function find(int $payoutItemId): ?PayoutItemSnapshot
     {
         $item = PayoutItem::query()
@@ -54,6 +48,7 @@ final class PayoutItemService
                 'payout_items.status',
                 'payout_items.idempotency_key',
                 'payout_items.attempts',
+                'payout_items.submitted_at',
                 'instructors.payout_account_ref',
             ]);
 
@@ -71,6 +66,7 @@ final class PayoutItemService
             self::asString($item->getAttribute('idempotency_key')),
             self::asString($item->getAttribute('payout_account_ref')),
             self::asInt($item->getAttribute('attempts')),
+            $item->submitted_at,
         );
     }
 
@@ -131,20 +127,115 @@ final class PayoutItemService
 
     /**
      * The outcome nobody knows (D-8). Money stays reserved, and the item is
-     * queued to be asked about again shortly.
+     * queued to be asked about again.
+     *
+     * The caller supplies `next_check_at` rather than this deciding it: F07
+     * wants to ask again almost immediately, while F08's ladder backs off as
+     * the answers keep not arriving, and the policy behind that belongs in one
+     * place (`ReconciliationSchedule`) rather than two.
      */
-    public function markUnknown(int $payoutItemId, CarbonImmutable $asOf, string $reason): bool
+    public function markUnknown(int $payoutItemId, CarbonImmutable $nextCheckAt, string $reason): bool
     {
         $moved = DB::table('payout_items')
             ->where('id', $payoutItemId)
             ->whereIn('status', [PayoutItemStatus::SUBMITTED->value, PayoutItemStatus::UNKNOWN->value])
             ->update([
                 'status' => PayoutItemStatus::UNKNOWN->value,
-                'next_check_at' => $asOf->addMinutes(self::UNKNOWN_RECHECK_MINUTES),
+                'next_check_at' => $nextCheckAt,
                 'last_error' => Str::limit($reason, 250),
             ]);
 
         return $moved === 1;
+    }
+
+    /**
+     * Sends an item back to `reserved` so it can be dispatched again (F08).
+     *
+     * Only ever reached when the provider has said `not_found` *after* the
+     * grace window — that is, it has had time to see the transfer and reports
+     * no record of it. The resend uses the same idempotency key, so even if the
+     * status API was lying, the provider's dedup stops a second payment.
+     *
+     * @return bool true when this call released the item for another attempt
+     */
+    public function markReservedForResend(int $payoutItemId, string $reason): bool
+    {
+        $moved = DB::table('payout_items')
+            ->where('id', $payoutItemId)
+            ->whereIn('status', [PayoutItemStatus::SUBMITTED->value, PayoutItemStatus::UNKNOWN->value])
+            ->update([
+                'status' => PayoutItemStatus::RESERVED->value,
+                'next_check_at' => null,
+                'last_error' => Str::limit($reason, 250),
+            ]);
+
+        return $moved === 1;
+    }
+
+    /**
+     * Items whose outcome the provider has not settled, due for another ask.
+     *
+     * Ordered and bounded, on INDEX `(status, next_check_at)`. The sweep is
+     * allowed to be behind — an item it misses this run is picked up on the
+     * next one, because the predicate is a property of the row rather than of
+     * when the sweep happened to look.
+     *
+     * @return list<int>
+     */
+    public function dueForReconciliation(CarbonImmutable $asOf, int $limit): array
+    {
+        /** @var list<int> $ids */
+        $ids = DB::table('payout_items')
+            ->whereIn('status', [PayoutItemStatus::SUBMITTED->value, PayoutItemStatus::UNKNOWN->value])
+            ->whereNotNull('next_check_at')
+            ->where('next_check_at', '<=', $asOf)
+            ->orderBy('next_check_at')
+            ->limit($limit)
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => self::asInt($id))
+            ->all();
+
+        return $ids;
+    }
+
+    /**
+     * Items reserved long ago that nobody ever tried to send — the job was
+     * lost, the worker died before starting, the batch never dispatched.
+     *
+     * Re-dispatching is safe rather than merely likely to be: the item is still
+     * `reserved`, so the compare-and-swap admits exactly one worker, and the
+     * key it carries is the one the provider dedups on.
+     *
+     * @return list<int>
+     */
+    public function strandedReserved(CarbonImmutable $before, int $limit): array
+    {
+        /** @var list<int> $ids */
+        $ids = DB::table('payout_items')
+            ->where('status', PayoutItemStatus::RESERVED->value)
+            ->where('created_at', '<', $before)
+            ->orderBy('id')
+            ->limit($limit)
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => self::asInt($id))
+            ->all();
+
+        return $ids;
+    }
+
+    /**
+     * How many times we have already asked this provider about this item.
+     *
+     * Read from the audit trail rather than kept in a counter column: the
+     * attempts *are* the record, and a second source of the same number is a
+     * second thing that can be wrong.
+     */
+    public function statusCheckCount(int $payoutItemId): int
+    {
+        return DB::table('payout_attempts')
+            ->where('payout_item_id', $payoutItemId)
+            ->where('operation', PayoutAttemptOperation::STATUS->value)
+            ->count();
     }
 
     /**

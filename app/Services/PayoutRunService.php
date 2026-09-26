@@ -104,6 +104,14 @@ final class PayoutRunService
             'currency' => $currency,
             'status' => PayoutItemStatus::RESERVED->value,
             'idempotency_key' => $idempotencyKey,
+            /**
+             * Stamped by the application, not by `useCurrent()`. F08's stranded
+             * sweep asks "has this sat here for half an hour", and comparing an
+             * application instant against a column the database filled from its
+             * own clock is two clocks deciding one money question. The column
+             * keeps its default for any row written outside this method.
+             */
+            'created_at' => CarbonImmutable::now(),
         ]);
 
         if ($written === 0) {
