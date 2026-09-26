@@ -28,7 +28,8 @@ return new class extends Migration
             $table->string('entry_type', 32);
             $table->string('reference_type', 64);
             $table->unsignedBigInteger('reference_id');
-            $table->timestamp('created_at')->useCurrent();
+            /** Stamped by `LedgerService`; no updated_at, the ledger is append-only. */
+            $table->timestamp('created_at')->nullable();
 
             $table->unique(
                 columns: [

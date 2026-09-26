@@ -6,6 +6,7 @@ namespace App\Builders;
 
 use App\Models\Course;
 use App\Models\Instructor;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -19,7 +20,7 @@ final class CourseQueryBuilder extends Builder
     public function published(): self
     {
         return $this->whereNotNull('published_at')
-            ->where('published_at', '<=', now());
+            ->where('published_at', '<=', CarbonImmutable::now());
     }
 
     /**

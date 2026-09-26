@@ -40,6 +40,8 @@ final class AccrualService implements AccrualServiceContract
      */
     public function scheduleFor(int $subscriptionId, AccrualSchedule $schedule): int
     {
+        $now = CarbonImmutable::now();
+
         $rows = array_map(static fn (SchedulePeriod $period): array => [
             'subscription_id' => $subscriptionId,
             'sequence' => $period->sequence,
@@ -48,6 +50,8 @@ final class AccrualService implements AccrualServiceContract
             'days' => $period->days,
             'gross_minor' => $period->gross->minor,
             'status' => AccrualPeriodStatus::SCHEDULED->value,
+            'created_at' => $now,
+            'updated_at' => $now,
         ], $schedule->periods);
 
         return DB::table('accrual_periods')->insertOrIgnore($rows);

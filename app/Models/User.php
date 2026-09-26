@@ -23,8 +23,8 @@ use Illuminate\Support\Carbon;
  * @property string          $password
  * @property string          $remember_token
  * @property Carbon          $email_verified_at
- * @property CarbonImmutable $created_at
- * @property CarbonImmutable $update_at
+ * @property Carbon          $created_at
+ * @property CarbonImmutable $updated_at
  */
 final class User extends Authenticatable implements FilamentUser
 {

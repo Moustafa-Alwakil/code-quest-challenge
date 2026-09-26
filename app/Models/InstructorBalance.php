@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Carbon\CarbonImmutable;
 use Database\Factories\InstructorBalanceFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * The O(1) view of what an instructor has earned, holds, can be paid and has
@@ -20,23 +20,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * InstructorBalanceService as atomic SQL increments — never a read, a change in
  * PHP and a save, which loses a concurrent posting.
  *
- * @property int             $instructor_id
- * @property string          $currency
- * @property int             $earned_minor
- * @property int             $clawed_back_minor
- * @property int             $held_minor
- * @property int             $available_minor
- * @property int             $reserved_minor
- * @property int             $paid_minor
- * @property int             $last_ledger_entry_id the last posting folded into this row, for debugging only:
- *                                                 nothing may branch on it (R19). It stores
- *                                                 `greatest(existing, last id of the posting)`, which is
- *                                                 monotonic but does *not* mean every entry at or below
- *                                                 that id is folded in — the id may belong to a platform
- *                                                 leg. "This balance is current as of entry X" is a
- *                                                 different guarantee, needing its own design and its own
- *                                                 check; escalate when F06 actually wants it
- * @property CarbonImmutable $updated_at
+ * @property int    $instructor_id
+ * @property string $currency
+ * @property int    $earned_minor
+ * @property int    $clawed_back_minor
+ * @property int    $held_minor
+ * @property int    $available_minor
+ * @property int    $reserved_minor
+ * @property int    $paid_minor
+ * @property int    $last_ledger_entry_id the last posting folded into this row, for debugging only:
+ *                                        nothing may branch on it (R19). It stores
+ *                                        `greatest(existing, last id of the posting)`, which is
+ *                                        monotonic but does *not* mean every entry at or below
+ *                                        that id is folded in — the id may belong to a platform
+ *                                        leg. "This balance is current as of entry X" is a
+ *                                        different guarantee, needing its own design and its own
+ *                                        check; escalate when F06 actually wants it
+ * @property Carbon $updated_at
  */
 final class InstructorBalance extends Model
 {

@@ -54,12 +54,13 @@ return new class extends Migration
             $table->timestamp('recognized_at')->nullable();
 
             /**
-             * MySQL maintains these, because the rows are written by a multi-row
-             * `insertOrIgnore` and updated by F05's conditional `UPDATE` —
-             * neither of which goes through a model.
+             * Laravel's own columns, stamped by the application. The rows are
+             * written by a multi-row `insertOrIgnore`, which fires no model
+             * events, so `AccrualService::scheduleFor()` sets both explicitly;
+             * the conditional `UPDATE`s go through the Eloquent builder, which
+             * adds `updated_at` for them.
              */
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+            $table->timestamps();
 
             $table->unique(['subscription_id', 'period_start'], 'accrual_periods_start_unique');
             $table->unique(['subscription_id', 'sequence'], 'accrual_periods_sequence_unique');

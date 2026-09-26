@@ -9,6 +9,7 @@ use Database\Factories\EarningAllocationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * One instructor's share of one recognized period, and the hold on it (D-2,
@@ -28,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable      $available_at
  * @property CarbonImmutable|null $released_at
  * @property CarbonImmutable|null $clawed_back_at
- * @property CarbonImmutable      $created_at
+ * @property Carbon               $created_at
  */
 final class EarningAllocation extends Model
 {

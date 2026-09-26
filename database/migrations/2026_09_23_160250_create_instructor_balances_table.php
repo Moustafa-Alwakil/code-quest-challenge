@@ -40,11 +40,12 @@ return new class extends Migration
             $table->unsignedBigInteger('last_ledger_entry_id')->default(0);
 
             /**
-             * MySQL maintains this, not Eloquent: the row is only ever written
-             * by atomic `UPDATE ... SET x = x + ?` increments, which never go
-             * through a model. No created_at — the row is born on first posting.
+             * Stamped by `InstructorBalanceService`: the row is only ever
+             * written by atomic `UPDATE ... SET x = x + ?` increments, which
+             * never go through a model. No created_at — the row is born on
+             * first posting.
              */
-            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+            $table->timestamp('updated_at')->nullable();
 
             $table->foreign('instructor_id')
                 ->references('id')

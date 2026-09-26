@@ -9,6 +9,7 @@ use Database\Factories\PaymentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * A captured payment, recorded once and keyed by the gateway's reference (F04).
@@ -26,8 +27,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int             $amount_minor
  * @property string          $currency
  * @property CarbonImmutable $captured_at
- * @property CarbonImmutable $created_at
- * @property CarbonImmutable $updated_at
+ * @property Carbon          $created_at
+ * @property Carbon          $updated_at
  */
 final class Payment extends Model
 {

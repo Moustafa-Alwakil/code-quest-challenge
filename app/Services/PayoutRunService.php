@@ -47,6 +47,8 @@ final class PayoutRunService implements PayoutRunServiceContract
             'status' => PayoutRunStatus::OPEN->value,
             'currency' => $currency,
             'started_at' => $startedAt,
+            'created_at' => $startedAt,
+            'updated_at' => $startedAt,
         ]);
     }
 
@@ -97,6 +99,7 @@ final class PayoutRunService implements PayoutRunServiceContract
     public function createReservedItem(int $runId, int $instructorId, int $amountMinor, string $currency): ?array
     {
         $idempotencyKey = (string) Str::uuid();
+        $now = CarbonImmutable::now();
 
         $written = DB::table('payout_items')->insertOrIgnore([
             'payout_run_id' => $runId,
@@ -112,7 +115,8 @@ final class PayoutRunService implements PayoutRunServiceContract
              * own clock is two clocks deciding one money question. The column
              * keeps its default for any row written outside this method.
              */
-            'created_at' => CarbonImmutable::now(),
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
 
         if ($written === 0) {
@@ -137,10 +141,13 @@ final class PayoutRunService implements PayoutRunServiceContract
     {
         DB::table('payout_runs')
             ->where('id', $runId)
-            ->incrementEach([
-                'item_count' => 1,
-                'total_minor' => $amountMinor,
-            ]);
+            ->incrementEach(
+                [
+                    'item_count' => 1,
+                    'total_minor' => $amountMinor,
+                ],
+                ['updated_at' => CarbonImmutable::now()],
+            );
     }
 
     /**
@@ -223,7 +230,7 @@ final class PayoutRunService implements PayoutRunServiceContract
      */
     public function transition(int $runId, PayoutRunStatus $from, PayoutRunStatus $to, ?CarbonImmutable $finishedAt = null): bool
     {
-        $values = ['status' => $to->value];
+        $values = ['status' => $to->value, 'updated_at' => CarbonImmutable::now()];
 
         if ($finishedAt instanceof CarbonImmutable) {
             $values['finished_at'] = $finishedAt;

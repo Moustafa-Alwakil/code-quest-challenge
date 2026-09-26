@@ -91,6 +91,7 @@ final class PayoutItemService implements PayoutItemServiceContract
                 'submitted_at' => $submittedAt,
                 'next_check_at' => $submittedAt->addMinutes(self::SUBMITTED_RECHECK_MINUTES),
                 'attempts' => DB::raw('attempts + 1'),
+                'updated_at' => CarbonImmutable::now(),
             ]);
 
         return $claimed === 1;
@@ -131,6 +132,7 @@ final class PayoutItemService implements PayoutItemServiceContract
                 'next_check_at' => null,
                 'provider_reference' => $providerReference,
                 'last_error' => $lastError === null ? null : Str::limit($lastError, 250),
+                'updated_at' => CarbonImmutable::now(),
             ]);
 
         return $moved === 1;
@@ -154,6 +156,7 @@ final class PayoutItemService implements PayoutItemServiceContract
                 'status' => PayoutItemStatus::UNKNOWN->value,
                 'next_check_at' => $nextCheckAt,
                 'last_error' => Str::limit($reason, 250),
+                'updated_at' => CarbonImmutable::now(),
             ]);
 
         return $moved === 1;
@@ -178,6 +181,7 @@ final class PayoutItemService implements PayoutItemServiceContract
                 'status' => PayoutItemStatus::RESERVED->value,
                 'next_check_at' => null,
                 'last_error' => Str::limit($reason, 250),
+                'updated_at' => CarbonImmutable::now(),
             ]);
 
         return $moved === 1;
@@ -289,6 +293,7 @@ final class PayoutItemService implements PayoutItemServiceContract
                 'status' => PayoutItemStatus::NEEDS_REVIEW->value,
                 'next_check_at' => null,
                 'last_error' => Str::limit($reason, 250),
+                'updated_at' => CarbonImmutable::now(),
             ]);
 
         return $moved === 1;

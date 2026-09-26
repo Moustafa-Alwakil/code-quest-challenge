@@ -12,6 +12,7 @@ use App\Models\LedgerEntry;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use UnexpectedValueException;
@@ -61,7 +62,7 @@ final class LedgerService implements LedgerServiceContract
         }
 
         $transactionUuid = (string) Str::uuid();
-        $now = now();
+        $now = CarbonImmutable::now();
 
         $rows = array_map(static fn (LedgerLeg $leg): array => [
             'transaction_uuid' => $transactionUuid,
@@ -194,7 +195,7 @@ final class LedgerService implements LedgerServiceContract
             );
         }
 
-        $now = now();
+        $now = CarbonImmutable::now();
         $rows = [];
 
         foreach ($transactions as $transaction) {

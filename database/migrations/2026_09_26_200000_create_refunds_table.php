@@ -44,7 +44,8 @@ return new class extends Migration
 
             $table->string('reason', 255)->nullable();
 
-            $table->timestamp('created_at')->useCurrent();
+            /** Written through Eloquent, so Laravel stamps it; no updated_at, a refund is never rewritten. */
+            $table->timestamp('created_at')->nullable();
 
             $table->unique('subscription_id', 'refunds_subscription_unique');
             $table->unique('external_ref', 'refunds_external_ref_unique');

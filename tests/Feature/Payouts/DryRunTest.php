@@ -76,7 +76,7 @@ it('writes nothing, not even the maturation sweep', function (): void {
         ->and(LedgerEntry::query()->count())->toBe($before['entries'])
         ->and(EarningAllocation::query()->whereNull('released_at')->count())->toBe($before['allocations'])
         ->and(InstructorBalance::query()->orderBy('instructor_id')->get()->toArray())->toBe($before['balances'])
-        /** Even `updated_at` is untouched — MySQL maintains it, so a no-op write would show. */
+        /** Even `updated_at` is untouched — the service stamps it on every increment, so a no-op write would show. */
         ->and(DB::table('instructor_balances')->orderBy('instructor_id')->pluck('updated_at')->all())
         ->toBe($before['balanceUpdatedAt']);
 

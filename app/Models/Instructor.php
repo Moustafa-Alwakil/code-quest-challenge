@@ -7,12 +7,12 @@ namespace App\Models;
 use App\Builders\InstructorQueryBuilder;
 use App\Enums\InstructorStatus;
 use App\Enums\LedgerAccountType;
-use Carbon\CarbonImmutable;
 use Database\Factories\InstructorFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * An instructor earns a share of recognized revenue and is paid out (F05-F07).
@@ -24,8 +24,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string           $email
  * @property string           $payout_account_ref
  * @property InstructorStatus $status
- * @property CarbonImmutable  $created_at
- * @property CarbonImmutable  $updated_at
+ * @property Carbon           $created_at
+ * @property Carbon           $updated_at
  */
 final class Instructor extends Model
 {

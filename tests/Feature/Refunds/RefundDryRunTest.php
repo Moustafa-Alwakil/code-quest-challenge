@@ -78,7 +78,7 @@ it('writes nothing at all', function (): void {
         ->toBe($before['allocations'])
         ->and(InstructorBalance::query()->orderBy('instructor_id')->get()->toArray())->toBe($before['balances'])
         ->and(Subscription::query()->findOrFail($subscriptionId)->status)->toBe($before['subscription'])
-        /** Even `updated_at` is unmoved — MySQL maintains it, so a no-op write would show. */
+        /** Even `updated_at` is unmoved — the service stamps it on every increment, so a no-op write would show. */
         ->and(DB::table('instructor_balances')->orderBy('instructor_id')->pluck('updated_at')->all())
         ->toBe($before['touched']);
 });

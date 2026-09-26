@@ -46,8 +46,8 @@ return new class extends Migration
             /** Set by a full refund (F09). A clawback of held money costs the instructor nothing. */
             $table->timestamp('clawed_back_at')->nullable();
 
-            /** MySQL maintains it: rows arrive by `insertOrIgnore`, which fires no model events. */
-            $table->timestamp('created_at')->useCurrent();
+            /** Stamped by `EarningAllocationService::insertFor()`: rows arrive by `insertOrIgnore`, which fires no model events. */
+            $table->timestamp('created_at')->nullable();
 
             /** One allocation per instructor per period — recognition replayed writes nothing. */
             $table->unique(['accrual_period_id', 'instructor_id'], 'earning_allocations_period_instructor_unique');

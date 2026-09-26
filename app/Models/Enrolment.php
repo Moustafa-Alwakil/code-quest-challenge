@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Carbon\CarbonImmutable;
 use Database\Factories\EnrolmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,12 +14,12 @@ use Illuminate\Support\Carbon;
  * A student's enrolment in a course. Engagement is only generated for courses
  * a student is actually enrolled in, which keeps seeded data coherent (F02).
  *
- * @property int             $id
- * @property int             $user_id
- * @property int             $course_id
- * @property Carbon          $enrolled_at
- * @property CarbonImmutable $created_at
- * @property CarbonImmutable $updated_at
+ * @property int    $id
+ * @property int    $user_id
+ * @property int    $course_id
+ * @property Carbon $enrolled_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 final class Enrolment extends Model
 {

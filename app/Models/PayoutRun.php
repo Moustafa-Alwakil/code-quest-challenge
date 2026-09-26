@@ -10,6 +10,7 @@ use Database\Factories\PayoutRunFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * One batch of payouts, found by its key rather than created twice (F06).
@@ -27,8 +28,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string               $currency
  * @property CarbonImmutable|null $started_at
  * @property CarbonImmutable|null $finished_at
- * @property CarbonImmutable      $created_at
- * @property CarbonImmutable      $updated_at
+ * @property Carbon               $created_at
+ * @property Carbon               $updated_at
  */
 final class PayoutRun extends Model
 {

@@ -56,8 +56,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('transfer_calls')->default(0);
 
             $table->timestamp('processed_at')->nullable();
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+            $table->timestamps();
 
             $table->unique('idempotency_key', 'mock_provider_transfers_key_unique');
         });

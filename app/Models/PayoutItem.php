@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * What one instructor is owed by one run, and how far sending it has got
@@ -36,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $settled_at
  * @property string|null          $last_error
  * @property CarbonImmutable      $created_at
- * @property CarbonImmutable      $updated_at
+ * @property Carbon               $updated_at
  */
 final class PayoutItem extends Model
 {
@@ -96,6 +97,7 @@ final class PayoutItem extends Model
             'next_check_at' => 'immutable_datetime',
             'submitted_at' => 'immutable_datetime',
             'settled_at' => 'immutable_datetime',
+            'created_at' => 'immutable_datetime',
         ];
     }
 }

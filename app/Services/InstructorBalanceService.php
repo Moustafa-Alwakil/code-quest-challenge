@@ -12,6 +12,7 @@ use App\Models\InstructorBalance;
 use App\Models\LedgerEntry;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\BalanceTotals;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\LazyCollection;
 
@@ -78,6 +79,7 @@ final class InstructorBalanceService implements InstructorBalanceServiceContract
                     ],
                     [
                         'last_ledger_entry_id' => DB::raw('greatest(last_ledger_entry_id, '.$lastLedgerEntryId.')'),
+                        'updated_at' => CarbonImmutable::now(),
                     ],
                 );
         }
@@ -212,9 +214,12 @@ final class InstructorBalanceService implements InstructorBalanceServiceContract
      */
     private function ensureRowsExist(string $currency, array $instructorIds): void
     {
+        $now = CarbonImmutable::now();
+
         $rows = array_map(static fn (int $instructorId): array => [
             'instructor_id' => $instructorId,
             'currency' => $currency,
+            'updated_at' => $now,
         ], $instructorIds);
 
         DB::table('instructor_balances')->insertOrIgnore($rows);

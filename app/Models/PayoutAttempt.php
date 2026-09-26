@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\PayoutAttemptOperation;
-use Carbon\CarbonImmutable;
 use Database\Factories\PayoutAttemptFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * One interaction with the provider, kept forever (F07).
@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string                 $response
  * @property string                 $outcome
  * @property int                    $duration_ms
- * @property CarbonImmutable        $created_at
+ * @property Carbon                 $created_at
  */
 final class PayoutAttempt extends Model
 {

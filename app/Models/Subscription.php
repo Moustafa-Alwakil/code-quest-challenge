@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * A paid term (F04).
@@ -34,8 +35,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int                  $price_minor
  * @property string               $currency
  * @property CarbonImmutable|null $canceled_at set by a refund (F09)
- * @property CarbonImmutable      $created_at
- * @property CarbonImmutable      $updated_at
+ * @property Carbon               $created_at
+ * @property Carbon               $updated_at
  */
 final class Subscription extends Model
 {

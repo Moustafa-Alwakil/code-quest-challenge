@@ -87,6 +87,8 @@ final class SubscribeStudentsInBulkAction
                     'days' => $period->days,
                     'gross_minor' => $period->gross->minor,
                     'status' => AccrualPeriodStatus::SCHEDULED->value,
+                    'created_at' => $term->capturedAt,
+                    'updated_at' => $term->capturedAt,
                 ];
             }
         }

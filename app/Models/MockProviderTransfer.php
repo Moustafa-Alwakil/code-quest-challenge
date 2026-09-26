@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\TransferStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * A row in the mock provider's own database (F07, R8).
@@ -30,8 +31,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property int                  $transfer_executions
  * @property int                  $transfer_calls
  * @property CarbonImmutable|null $processed_at
- * @property CarbonImmutable      $created_at
- * @property CarbonImmutable      $updated_at
+ * @property Carbon               $created_at
+ * @property Carbon               $updated_at
  */
 final class MockProviderTransfer extends Model
 {

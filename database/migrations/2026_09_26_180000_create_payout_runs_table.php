@@ -42,12 +42,11 @@ return new class extends Migration
             $table->timestamp('finished_at')->nullable();
 
             /**
-             * MySQL maintains these: a run is created by `insertOrIgnore` and
-             * advanced by conditional `UPDATE`s, neither of which fires model
-             * events.
+             * Laravel's own columns, stamped by `PayoutRunService`: a run is
+             * created by `insertOrIgnore` and advanced by conditional
+             * `UPDATE`s, neither of which fires model events.
              */
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+            $table->timestamps();
 
             $table->unique('run_key', 'payout_runs_key_unique');
         });

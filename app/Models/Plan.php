@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Builders\PlanQueryBuilder;
-use Carbon\CarbonImmutable;
 use Database\Factories\PlanFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * A subscription plan: term length and price.
@@ -17,15 +17,15 @@ use Illuminate\Database\Eloquent\Model;
  * splits it across `interval_months` periods with the largest-remainder
  * method, so the periods sum to the price exactly (D-1, D-5).
  *
- * @property int             $id
- * @property string          $key
- * @property string          $name
- * @property int             $interval_months
- * @property int             $price_minor
- * @property string          $currency
- * @property bool            $is_active
- * @property CarbonImmutable $created_at
- * @property CarbonImmutable $updated_at
+ * @property int    $id
+ * @property string $key
+ * @property string $name
+ * @property int    $interval_months
+ * @property int    $price_minor
+ * @property string $currency
+ * @property bool   $is_active
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 final class Plan extends Model
 {

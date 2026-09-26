@@ -233,8 +233,8 @@ it('writes a twelve-period schedule in a single insert statement', function (): 
     }
 
     expect($inserts)->toHaveCount(1, 'The schedule must be one statement, not a chunk loop.')
-        /** Twelve value tuples in that one statement. */
-        ->and(mb_substr_count($inserts[0], '(?, ?, ?, ?, ?, ?, ?)'))->toBe(12)
+        /** Twelve value tuples in that one statement, nine columns apiece. */
+        ->and(mb_substr_count($inserts[0], '(?, ?, ?, ?, ?, ?, ?, ?, ?)'))->toBe(12)
         ->and(AccrualPeriod::query()->count())->toBe(12)
         ->and((int) AccrualPeriod::query()->sum('gross_minor'))->toBe(300_000)
         ->and(AccrualPeriod::query()->pluck('sequence')->all())->toBe(range(1, 12));

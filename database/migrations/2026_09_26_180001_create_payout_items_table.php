@@ -53,8 +53,12 @@ return new class extends Migration
             $table->timestamp('settled_at')->nullable();
             $table->string('last_error', 255)->nullable();
 
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+            /**
+             * `created_at` is what F08's stranded sweep measures elapsed time
+             * from (R35), so the application stamps it — a database default
+             * would put two clocks on one money question.
+             */
+            $table->timestamps();
 
             $table->unique(['payout_run_id', 'instructor_id'], 'payout_items_run_instructor_unique');
             $table->unique('idempotency_key', 'payout_items_idempotency_unique');

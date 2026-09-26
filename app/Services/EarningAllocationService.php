@@ -49,6 +49,7 @@ final class EarningAllocationService implements EarningAllocationServiceContract
         }
 
         $rows = [];
+        $now = CarbonImmutable::now();
 
         foreach ($sharesByInstructor as $instructorId => $amountMinor) {
             $rows[] = [
@@ -58,6 +59,7 @@ final class EarningAllocationService implements EarningAllocationServiceContract
                 'amount_minor' => $amountMinor,
                 'currency' => $currency,
                 'available_at' => $availableAt,
+                'created_at' => $now,
             ];
         }
 

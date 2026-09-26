@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\AccrualPeriod;
 use App\Models\Instructor;
-use App\Models\InstructorBalance;
-use App\Models\LedgerEntry;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -128,13 +127,15 @@ it('keys the snapshot by instructor id alone', function (): void {
     expect(indexColumns('instructor_balances', 'PRIMARY'))->toBe(['instructor_id']);
 });
 
-it('maintains the snapshot updated_at in MySQL, because no model ever writes the row', function (): void {
+it('stamps the snapshot updated_at in PHP, because no model ever writes the row', function (): void {
     /**
-     * `InstructorBalanceService` only ever issues `UPDATE ... SET x = x + ?`.
-     * Nothing goes through Eloquent, so nothing touches timestamps in PHP: if
-     * the column has no `ON UPDATE CURRENT_TIMESTAMP` it is dead weight, and if
-     * it has no default the insertOrIgnore of a zero row fails outright under
-     * `explicit_defaults_for_timestamp`.
+     * `InstructorBalanceService` only ever issues `UPDATE ... SET x = x + ?`,
+     * and nothing goes through Eloquent, so nothing would touch the timestamp
+     * on its own. The column therefore carries no database-side default (R50)
+     * and the service stamps it — on the insert of a zero row and on every
+     * increment. The catalogue half of this asserts the default is gone; the
+     * behavioural half asserts the stamp actually happens, because a column
+     * with neither is silently null forever.
      */
     /** @var list<object{EXTRA: string, COLUMN_DEFAULT: string|null}> $rows */
     $rows = DB::select(
@@ -143,8 +144,24 @@ it('maintains the snapshot updated_at in MySQL, because no model ever writes the
     );
 
     expect($rows)->toHaveCount(1)
-        ->and(mb_strtolower($rows[0]->EXTRA))->toContain('on update current_timestamp')
-        ->and(mb_strtoupper((string) $rows[0]->COLUMN_DEFAULT))->toContain('CURRENT_TIMESTAMP');
+        ->and(mb_strtolower($rows[0]->EXTRA))->not->toContain('on update current_timestamp')
+        ->and($rows[0]->COLUMN_DEFAULT)->toBeNull();
+
+    $instructor = Instructor::factory()->create();
+
+    LedgerPostings::post(
+        LedgerPostings::recognition(
+            periodId: 1,
+            subscriptionId: 1,
+            instructorId: $instructor->id,
+            grossMinor: 10_000,
+            instructorMinor: 7_000,
+        ),
+        LedgerPostings::recognizedAndReleased($instructor->id, 7_000),
+    );
+
+    expect(DB::table('instructor_balances')->where('instructor_id', $instructor->id)->value('updated_at'))
+        ->not->toBeNull();
 });
 
 it('cascades the snapshot away with its instructor', function (): void {
@@ -163,31 +180,27 @@ it('cascades the snapshot away with its instructor', function (): void {
 });
 
 /*
- * R22: Date::use(CarbonImmutable::class) in AppServiceProvider, so every model's
- * `@property CarbonImmutable` annotation is true. Without it Eloquent hands back
- * a mutable Illuminate\Support\Carbon and PHPStan — which trusts the
- * annotation — reports nothing when F04's period boundary maths mutates an
+ * R22, R49: the dates this application does arithmetic on are cast
+ * `immutable_date` / `immutable_datetime` on the model, so every
+ * `@property CarbonImmutable` annotation is true. Without the cast Eloquent
+ * hands back a mutable Illuminate\Support\Carbon and PHPStan — which trusts
+ * the annotation — reports nothing when F04's period boundary maths mutates an
  * attribute in place.
+ *
+ * Bookkeeping timestamps are deliberately not in that set: nothing reads
+ * `created_at` as a date, so they keep the framework's own type rather than
+ * carrying a cast for a guarantee no caller needs. The one exception is
+ * `payout_items.created_at`, which F08's stranded sweep measures from (R35).
  */
 
-it('hands back immutable dates from the ledger, as every model annotates', function (): void {
-    $instructor = Instructor::factory()->create();
+it('hands back immutable dates from the columns the money maths reads', function (): void {
+    $period = AccrualPeriod::factory()->create();
 
-    LedgerPostings::post(
-        LedgerPostings::recognition(
-            periodId: 1,
-            subscriptionId: 1,
-            instructorId: $instructor->id,
-            grossMinor: 10_000,
-            instructorMinor: 7_000,
-        ),
-        LedgerPostings::recognizedAndReleased($instructor->id, 7_000),
-    );
+    expect($period->period_start)->toBeInstanceOf(CarbonImmutable::class)
+        ->and($period->period_end)->toBeInstanceOf(CarbonImmutable::class);
 
-    $entry = LedgerEntry::query()->firstOrFail();
-    $balance = InstructorBalance::query()->findOrFail($instructor->id);
+    $anchor = $period->period_start;
+    $period->period_start->addMonths(3);
 
-    expect($entry->created_at)->toBeInstanceOf(CarbonImmutable::class)
-        ->and($balance->updated_at)->toBeInstanceOf(CarbonImmutable::class)
-        ->and($instructor->created_at)->toBeInstanceOf(CarbonImmutable::class);
+    expect($period->period_start->equalTo($anchor))->toBeTrue();
 });

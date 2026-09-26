@@ -40,10 +40,11 @@ return new class extends Migration
             $table->unsignedInteger('units');
 
             /**
-             * MySQL maintains this: the rows arrive by bulk `insertOrIgnore`
-             * from a seeder or a rollup job, which fires no model events.
+             * Stamped by whoever builds the rows: they arrive by bulk
+             * `insertOrIgnore` from a seeder or a rollup job, which fires no
+             * model events.
              */
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamp('created_at')->nullable();
 
             /** One rollup row per instructor per period: recording it twice is a no-op. */
             $table->unique(

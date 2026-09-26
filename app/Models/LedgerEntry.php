@@ -7,10 +7,10 @@ namespace App\Models;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
 use App\Exceptions\ImmutableLedgerException;
-use Carbon\CarbonImmutable;
 use Database\Factories\LedgerEntryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * One leg of one posting — append-only (D-9).
@@ -33,7 +33,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property LedgerEntryType   $entry_type
  * @property string            $reference_type
  * @property int               $reference_id
- * @property CarbonImmutable   $created_at
+ * @property Carbon            $created_at
  */
 final class LedgerEntry extends Model
 {

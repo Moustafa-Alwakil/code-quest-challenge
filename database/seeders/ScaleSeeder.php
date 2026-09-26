@@ -287,6 +287,7 @@ final class ScaleSeeder extends Seeder
                         'period_start' => $period->period_start,
                         'instructor_id' => $instructorIds[($offset + $step) % $instructorCount],
                         'units' => $faker->numberBetween(1, 600),
+                        'created_at' => CarbonImmutable::now(),
                     ];
                 }
             }

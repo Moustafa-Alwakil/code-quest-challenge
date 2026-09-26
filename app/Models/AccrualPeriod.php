@@ -10,6 +10,7 @@ use Database\Factories\AccrualPeriodFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * One slice of a term's price, and when it is earned (D-1, F04).
@@ -33,8 +34,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null             $platform_minor
  * @property AccrualPeriodStatus  $status
  * @property CarbonImmutable|null $recognized_at
- * @property CarbonImmutable      $created_at
- * @property CarbonImmutable      $updated_at
+ * @property Carbon               $created_at
+ * @property Carbon               $updated_at
  */
 final class AccrualPeriod extends Model
 {

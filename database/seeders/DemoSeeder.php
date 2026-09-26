@@ -364,6 +364,7 @@ final class DemoSeeder extends Seeder
                     'period_start' => $period->period_start->toDateString(),
                     'instructor_id' => $instructorId,
                     'units' => $units,
+                    'created_at' => CarbonImmutable::now(),
                 ];
             }
         }

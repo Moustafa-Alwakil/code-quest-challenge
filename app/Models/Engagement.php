@@ -9,6 +9,7 @@ use Database\Factories\EngagementFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Consumption minutes one subscription spent with one instructor during one
@@ -23,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable $period_start
  * @property int             $instructor_id
  * @property int             $units
- * @property CarbonImmutable $created_at
+ * @property Carbon          $created_at
  */
 final class Engagement extends Model
 {

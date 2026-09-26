@@ -10,6 +10,7 @@ use Database\Factories\RefundFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * A refund the gateway executed, and this system recorded once (F09, R25).
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable $effective_at
  * @property string          $external_ref
  * @property string|null     $reason
- * @property CarbonImmutable $created_at
+ * @property Carbon          $created_at
  */
 final class Refund extends Model
 {

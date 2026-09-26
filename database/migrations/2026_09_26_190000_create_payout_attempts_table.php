@@ -43,7 +43,8 @@ return new class extends Migration
 
             $table->unsignedInteger('duration_ms');
 
-            $table->timestamp('created_at')->useCurrent();
+            /** Stamped by `PayoutItemService::recordAttempt()`; no updated_at, an attempt is never rewritten. */
+            $table->timestamp('created_at')->nullable();
 
             /** An item's history, in order. */
             $table->index(['payout_item_id', 'attempt_no'], 'payout_attempts_item_index');
