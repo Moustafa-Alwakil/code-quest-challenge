@@ -168,7 +168,13 @@ it('creates exactly one snapshot row when two sessions post for a brand new inst
         postRecognition(2, $instructor->id, 3_000);
     });
 
-    expect($blocked)->not->toBeNull('Two sessions created the same snapshot row at the same time.');
+    /**
+     * The message is asserted, not only the presence of an exception:
+     * `expectBlocked()` catches PDOException, so without it a connection error
+     * would read as "the sessions serialized".
+     */
+    expect($blocked)->not->toBeNull('Two sessions created the same snapshot row at the same time.')
+        ->and($blocked->getMessage())->toMatch('/Lock wait timeout|Duplicate entry|Deadlock/');
 
     Interleaved::as(Interleaved::SESSION_A, fn () => $a->commit());
 
@@ -285,7 +291,8 @@ it('applies a clawback and a reservation racing on one row without losing either
         );
     });
 
-    expect($blocked)->not->toBeNull();
+    expect($blocked)->not->toBeNull()
+        ->and($blocked->getMessage())->toMatch('/Lock wait timeout|Duplicate entry|Deadlock/');
 
     Interleaved::as(Interleaved::SESSION_A, fn () => $a->commit());
 

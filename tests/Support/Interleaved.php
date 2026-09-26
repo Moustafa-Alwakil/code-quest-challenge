@@ -6,8 +6,8 @@ namespace Tests\Support;
 
 use Closure;
 use Illuminate\Database\Connection;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use PDOException;
 use Throwable;
 
 /**
@@ -107,15 +107,22 @@ final class Interleaved
      *
      * Returns null when the step completed instead — which is the interesting
      * failure: it means nothing serialized the two sessions.
+     *
+     * PDOException, not QueryException, because the type depends on how deep the
+     * blocked statement was: Laravel wraps a concurrency error raised inside a
+     * *nested* transaction (an Action's `DB::transaction` within a session
+     * transaction opened here) in `Illuminate\Database\DeadlockException`, which
+     * extends PDOException rather than QueryException. QueryException extends
+     * PDOException too, so both arrive here.
      */
-    public static function expectBlocked(string $session, Closure $step): ?QueryException
+    public static function expectBlocked(string $session, Closure $step): ?PDOException
     {
-        return self::as($session, function (Connection $connection) use ($step): ?QueryException {
+        return self::as($session, function (Connection $connection) use ($step): ?PDOException {
             try {
                 $step($connection);
 
                 return null;
-            } catch (QueryException $blocked) {
+            } catch (PDOException $blocked) {
                 return $blocked;
             } finally {
                 while ($connection->transactionLevel() > 0) {
