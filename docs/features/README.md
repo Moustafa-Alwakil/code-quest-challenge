@@ -137,6 +137,14 @@ Recorded when F06 was built. R33 fills a gap the feature file's finalization rul
 |---|---|---|---|
 | R33 | A run still holding `reserved` items finalizes to **`dispatched`**, not `completed_with_pending`. F06's rule covers only terminal statuses (→ `completed`) and `submitted` / `unknown` / `needs_review` (→ `completed_with_pending`), and says nothing about the status every item is born in | F06, F08 | The two statuses make different claims. `completed_with_pending` says "everything was sent and we are waiting to hear", which is what D-8 reserves it for; a `reserved` item has not been sent at all, and is waiting for a worker rather than for the provider. Calling that `completed_with_pending` would put a run whose jobs never ran into the same bucket as one blocked on a provider timeout — and F08's reconciliation sweep, which re-finalizes runs as `unknown` items resolve, would find nothing to reconcile and leave the run permanently mislabelled. `dispatched` is also what lets a resumed run be told apart from a finished one without counting items |
 
+### Payout execution refinements (F07 implementation)
+
+Recorded when F07 was built. R34 is a testing-infrastructure decision F08 inherits.
+
+| # | Refinement | Where | Why |
+|---|---|---|---|
+| R34 | `ScriptedMockProvider` enforces the §8.2 ordering rule against the transaction depth it was **constructed at**, not against zero: it records `DB::transactionLevel()` in its constructor and refuses any `transfer()` above it. F12's "no DB transaction is open during `transfer`" check is therefore "no transaction *we opened* is open" | F07, F08; `docs/features/12-testing-and-invariants.md` | `RefreshDatabase` holds one transaction open for the whole test, so a literal `level === 0` assertion fails every feature test and proves nothing — while deleting the assertion loses the only automated guard on the rule that keeps a row lock from being pinned for a provider's entire timeout. The baseline is 0 in production and 1 under `RefreshDatabase`, and a genuine violation is baseline + 1 in both. The one fragility is real and worth stating: if the singleton were first resolved *inside* a transaction, that transaction becomes its baseline and the guard is neutered. Every production path resolves it from a job or a command, outside one; `MockProviderTest` resolves it explicitly before opening a transaction, with a comment saying why |
+
 ## Definition of done — every feature
 
 - [ ] Migrations include every constraint the feature lists
