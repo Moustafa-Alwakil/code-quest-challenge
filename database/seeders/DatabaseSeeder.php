@@ -13,6 +13,11 @@ final class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(PlanSeeder::class);
+        /**
+         * `DemoSeeder` calls `PlanSeeder` itself, because the terms it creates
+         * need the plans to exist first and a seeder that depends on another
+         * having been run is a seeder that breaks when someone runs it alone.
+         */
+        $this->call(DemoSeeder::class);
     }
 }

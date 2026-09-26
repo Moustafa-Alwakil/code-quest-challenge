@@ -55,6 +55,26 @@ final class AccrualService
     }
 
     /**
+     * Writes the schedules of many terms in one statement (F02's `ScaleSeeder`).
+     *
+     * The single-term `scheduleFor()` deliberately does not chunk, because a
+     * term is at most twelve rows. Here the row count is unbounded — it is the
+     * number of terms times their periods — so the caller chunks and this takes
+     * whatever it is handed.
+     *
+     * @param  list<array<string, mixed>> $rows
+     * @return int                        periods written
+     */
+    public function insertSchedulesInBulk(array $rows): int
+    {
+        if ($rows === []) {
+            return 0;
+        }
+
+        return DB::table('accrual_periods')->insertOrIgnore($rows);
+    }
+
+    /**
      * The next page of periods whose term has closed and which nobody has
      * recognized yet (F05 step 2).
      *

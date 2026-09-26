@@ -9,7 +9,9 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Support\Money;
 use App\Support\Refunds\SubscriptionForRefund;
+use App\Support\Subscriptions\BulkTerm;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use UnexpectedValueException;
 
 /**
@@ -76,6 +78,76 @@ final class SubscriptionService
             'currency' => $amount->currency,
             'captured_at' => $capturedAt,
         ])->id;
+    }
+
+    /**
+     * Writes a chunk of terms, their payments and their schedules as four
+     * statements (F02's `ScaleSeeder`).
+     *
+     * Deliberately not a loop over `createActive()` and `recordPayment()`:
+     * fifty thousand terms that way is fifty thousand round trips and a scale
+     * seeder nobody will wait for. This is the same data through the same
+     * columns, written in bulk.
+     *
+     * **Ids come from MySQL's consecutive-autoincrement guarantee.** A single
+     * multi-row `INSERT` reports the id of its *first* row, and under the
+     * default `innodb_autoinc_lock_mode = 1` the rest follow consecutively in
+     * row order. That is what lets the payments and periods below reference
+     * their term without a read-back — and it is why this uses `insert()`
+     * rather than `insertOrIgnore()`, which would break the run of ids the
+     * moment one row were skipped.
+     *
+     * The caller is therefore responsible for not handing it a term that
+     * already exists; `ScaleSeeder` asserts an empty table rather than
+     * pretending to be idempotent.
+     *
+     * @param  list<BulkTerm> $terms
+     * @return int            the first subscription id written
+     */
+    public function insertTermsInBulk(array $terms): int
+    {
+        if ($terms === []) {
+            return 0;
+        }
+
+        $subscriptions = [];
+
+        foreach ($terms as $term) {
+            $subscriptions[] = [
+                'user_id' => $term->userId,
+                'plan_id' => $term->planId,
+                'status' => SubscriptionStatus::ACTIVE->value,
+                'term_start' => $term->schedule->termStart->toDateString(),
+                'term_end' => $term->schedule->termEnd->toDateString(),
+                'term_days' => $term->schedule->termDays,
+                'price_minor' => $term->price->minor,
+                'currency' => $term->price->currency,
+                'created_at' => $term->capturedAt,
+                'updated_at' => $term->capturedAt,
+            ];
+        }
+
+        DB::table('subscriptions')->insert($subscriptions);
+
+        $firstId = (int) DB::getPdo()->lastInsertId();
+
+        $payments = [];
+
+        foreach ($terms as $offset => $term) {
+            $payments[] = [
+                'subscription_id' => $firstId + $offset,
+                'external_ref' => $term->externalRef,
+                'amount_minor' => $term->price->minor,
+                'currency' => $term->price->currency,
+                'captured_at' => $term->capturedAt,
+                'created_at' => $term->capturedAt,
+                'updated_at' => $term->capturedAt,
+            ];
+        }
+
+        DB::table('payments')->insert($payments);
+
+        return $firstId;
     }
 
     /**

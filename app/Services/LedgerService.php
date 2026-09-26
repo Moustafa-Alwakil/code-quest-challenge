@@ -158,6 +158,65 @@ final class LedgerService
     }
 
     /**
+     * Posts many transactions in one statement, for bulk ingestion (F02's
+     * `ScaleSeeder`).
+     *
+     * Same table, same unique key, same `insertOrIgnore` — so replaying a batch
+     * is as safe as replaying a single posting. What it deliberately does *not*
+     * do is apply balance deltas: it exists for postings that move no
+     * instructor's snapshot, which at scale means the `payment_received` entries
+     * of fifty thousand terms. A batch that needed deltas would need them merged
+     * across transactions and ordered by instructor id, and that is `post()`'s
+     * job, one posting at a time.
+     *
+     * Each transaction still gets its own `transaction_uuid`, because "this
+     * posting balances" (invariant I2) is a statement about one business fact
+     * and merging them would make it unprovable.
+     *
+     * @param  list<LedgerTransaction> $transactions
+     * @return int                     legs written — short of the total when some were replays
+     *
+     * @throws LedgerIntegrityException outside a transaction
+     */
+    public function postMany(array $transactions): int
+    {
+        if ($transactions === []) {
+            return 0;
+        }
+
+        if (DB::transactionLevel() === 0) {
+            throw LedgerIntegrityException::outsideTransaction(
+                $transactions[0]->entryType->value,
+                $transactions[0]->referenceType,
+                $transactions[0]->referenceId,
+            );
+        }
+
+        $now = now();
+        $rows = [];
+
+        foreach ($transactions as $transaction) {
+            $transactionUuid = (string) Str::uuid();
+
+            foreach ($transaction->legs as $leg) {
+                $rows[] = [
+                    'transaction_uuid' => $transactionUuid,
+                    'account_type' => $leg->accountType->value,
+                    'account_id' => $leg->accountId,
+                    'amount_minor' => $leg->amount->minor,
+                    'currency' => $leg->amount->currency,
+                    'entry_type' => $transaction->entryType->value,
+                    'reference_type' => $transaction->referenceType,
+                    'reference_id' => $transaction->referenceId,
+                    'created_at' => $now,
+                ];
+            }
+        }
+
+        return DB::table('ledger_entries')->insertOrIgnore($rows);
+    }
+
+    /**
      * What each of the given subscriptions is still owed in undelivered time —
      * the balance of its `deferred_revenue` account (R5), for verify check 5.
      *
