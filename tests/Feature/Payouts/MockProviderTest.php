@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 use App\Contracts\MockProviderStoreContract;
+use App\Contracts\PaymentProvider;
 use App\Enums\TransferStatus;
 use App\Exceptions\ProviderTimeoutException;
 use App\Exceptions\ProviderUnavailableException;
 use App\Models\MockProviderTransfer;
-use App\Services\PaymentProvider;
 use App\Services\RandomMockProvider;
 use App\Services\ScriptedMockProvider;
 use Carbon\CarbonImmutable;

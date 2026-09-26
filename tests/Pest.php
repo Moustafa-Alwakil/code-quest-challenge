@@ -102,7 +102,7 @@ function egp(int $minor): App\Support\Money
  */
 function provider(): App\Services\ScriptedMockProvider
 {
-    $provider = app(App\Services\PaymentProvider::class);
+    $provider = app(App\Contracts\PaymentProvider::class);
 
     if (! $provider instanceof App\Services\ScriptedMockProvider) {
         throw new RuntimeException('The suite expects the scripted provider; check PAYOUT_PROVIDER in phpunit.xml.');

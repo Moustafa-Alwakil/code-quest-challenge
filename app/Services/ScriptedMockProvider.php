@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Contracts\MockProviderStoreContract;
+use App\Contracts\PaymentProvider;
 use App\Enums\TransferStatus;
 use App\Exceptions\ProviderTimeoutException;
 use App\Exceptions\ProviderUnavailableException;

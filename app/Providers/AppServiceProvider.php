@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts;
+use App\Contracts\PaymentProvider;
 use App\Services\AccrualService;
 use App\Services\EarningAllocationService;
 use App\Services\EngagementService;
@@ -12,7 +13,6 @@ use App\Services\InstructorBalanceService;
 use App\Services\LedgerService;
 use App\Services\LedgerVerificationService;
 use App\Services\MockProviderStore;
-use App\Services\PaymentProvider;
 use App\Services\PayoutItemService;
 use App\Services\PayoutRunService;
 use App\Services\PlanService;

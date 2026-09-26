@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions\Payouts;
 
+use App\Contracts\PaymentProvider;
 use App\Contracts\PayoutItemServiceContract;
 use App\Enums\PayoutAttemptOperation;
 use App\Enums\PayoutItemStatus;
 use App\Enums\TransferStatus;
 use App\Exceptions\ProviderTimeoutException;
 use App\Exceptions\ProviderUnavailableException;
-use App\Services\PaymentProvider;
 use App\Support\Payouts\PayoutItemSnapshot;
 use App\Support\Payouts\TransferResult;
 use Carbon\CarbonImmutable;
