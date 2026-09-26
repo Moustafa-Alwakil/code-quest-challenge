@@ -10,6 +10,7 @@ use App\Support\Accrual\AccrualSchedule;
 use App\Support\Accrual\PeriodForRecognition;
 use App\Support\Accrual\SchedulePeriod;
 use App\Support\Money;
+use App\Support\Refunds\PeriodLine;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use UnexpectedValueException;
@@ -164,6 +165,119 @@ final class AccrualService
                 'pool_minor' => $poolMinor,
                 'platform_minor' => $platformMinor,
             ]);
+    }
+
+    /**
+     * Every period of one term, in sequence, as refund planning sees them (F09).
+     *
+     * All statuses, not just scheduled: the plan has to know what was already
+     * recognized in order to say a full refund's clawback covers it, and a term
+     * with nothing scheduled left is exactly the "refund after the term ended"
+     * case.
+     *
+     * A term is at most twelve rows, so this is one query and no pagination —
+     * the unbounded thing here is subscriptions, not periods within one.
+     *
+     * @return list<PeriodLine>
+     */
+    public function periodLinesFor(int $subscriptionId): array
+    {
+        $lines = [];
+
+        $periods = AccrualPeriod::query()
+            ->where('subscription_id', $subscriptionId)
+            ->orderBy('sequence')
+            ->get(['id', 'sequence', 'period_start', 'period_end', 'days', 'gross_minor', 'status']);
+
+        foreach ($periods as $period) {
+            $lines[] = new PeriodLine(
+                $period->id,
+                $period->sequence,
+                $period->period_start,
+                $period->period_end,
+                $period->days,
+                $period->gross_minor,
+                $period->status,
+            );
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Shrinks a period to the days that were actually delivered (F09).
+     *
+     * Still `scheduled` afterwards, on purpose: the used days have to be
+     * *recognized* like any other period, through F05's action and its
+     * engagement, rather than being conjured into revenue by a refund. The CAS
+     * on `status` stops a concurrent `ledger:accrue` from recognizing the
+     * original, longer period underneath us.
+     *
+     * @return bool true when this call truncated the period
+     */
+    public function truncatePeriod(int $periodId, CarbonImmutable $newPeriodEnd, int $days, int $grossMinor): bool
+    {
+        $moved = AccrualPeriod::query()
+            ->where('id', $periodId)
+            ->where('status', AccrualPeriodStatus::SCHEDULED)
+            ->update([
+                'period_end' => $newPeriodEnd->toDateString(),
+                'days' => $days,
+                'gross_minor' => $grossMinor,
+            ]);
+
+        return $moved === 1;
+    }
+
+    /**
+     * Cancels the named periods, but only those still scheduled (F09).
+     *
+     * The `status` predicate is the guard against a race with `ledger:accrue`:
+     * a period it recognized a moment ago is no longer cancellable, and the
+     * count coming back short is how the caller finds out.
+     *
+     * @param  list<int> $periodIds
+     * @return int       periods cancelled by this call
+     */
+    public function cancelScheduled(array $periodIds): int
+    {
+        if ($periodIds === []) {
+            return 0;
+        }
+
+        return AccrualPeriod::query()
+            ->whereIn('id', $periodIds)
+            ->where('status', AccrualPeriodStatus::SCHEDULED)
+            ->update(['status' => AccrualPeriodStatus::CANCELLED]);
+    }
+
+    /**
+     * The recognized periods of one term, and the platform's share of them.
+     *
+     * A full refund reverses both sides of every recognition: the instructors'
+     * allocations and the platform's cut. The cut is read from the period row
+     * rather than recomputed, for the same reason the allocations are — a
+     * second pass through the split could re-round it.
+     *
+     * @return array{ids: list<int>, platform_minor: int}
+     */
+    public function recognizedPeriodsFor(int $subscriptionId): array
+    {
+        $ids = [];
+        $platform = 0;
+
+        $periods = AccrualPeriod::query()
+            ->where('subscription_id', $subscriptionId)
+            ->where('status', AccrualPeriodStatus::RECOGNIZED)
+            ->orderBy('id')
+            ->get(['id', 'platform_minor']);
+
+        foreach ($periods as $period) {
+            $ids[] = $period->id;
+            $platform += $period->platform_minor ?? 0;
+        }
+
+        return ['ids' => $ids, 'platform_minor' => $platform];
     }
 
     /**

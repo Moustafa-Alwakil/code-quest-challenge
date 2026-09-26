@@ -8,7 +8,9 @@ use App\Enums\SubscriptionStatus;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Support\Money;
+use App\Support\Refunds\SubscriptionForRefund;
 use Carbon\CarbonImmutable;
+use UnexpectedValueException;
 
 /**
  * The subscriptions aggregate, payments included (F04).
@@ -77,6 +79,55 @@ final class SubscriptionService
     }
 
     /**
+     * The term a refund is about, locked for the caller's transaction (F09).
+     *
+     * The lock is the outermost one a refund takes, and every other lock in the
+     * system is taken after it — instructor balances ascending, periods by id.
+     * One order everywhere is what keeps a refund and a concurrent payout run
+     * from deadlocking on the same instructor.
+     */
+    public function lockForRefund(int $subscriptionId): ?SubscriptionForRefund
+    {
+        return $this->readForRefund($subscriptionId, locking: true);
+    }
+
+    /**
+     * The same read without the lock, for `--dry-run`.
+     *
+     * A preview that took row locks would block a concurrent recognition for
+     * as long as someone was looking at the output, which is a strange price to
+     * pay for a number nobody is acting on yet.
+     */
+    public function findForRefund(int $subscriptionId): ?SubscriptionForRefund
+    {
+        return $this->readForRefund($subscriptionId, locking: false);
+    }
+
+    /**
+     * Marks a term refunded, from either state a live term can be in.
+     *
+     * `expired` is admitted as well as `active` because a term whose last
+     * period has closed can still be refunded — the pro-rata amount is simply
+     * zero, and F09's edge-case table says the status should still move. The
+     * CAS excludes `refunded`, which is what makes a second refund a no-op
+     * rather than a second cancellation.
+     *
+     * @return bool true when this call refunded the term
+     */
+    public function markRefunded(int $subscriptionId, CarbonImmutable $canceledAt): bool
+    {
+        $moved = Subscription::query()
+            ->where('id', $subscriptionId)
+            ->whereIn('status', [SubscriptionStatus::ACTIVE, SubscriptionStatus::EXPIRED])
+            ->update([
+                'status' => SubscriptionStatus::REFUNDED,
+                'canceled_at' => $canceledAt,
+            ]);
+
+        return $moved === 1;
+    }
+
+    /**
      * The next page of subscription ids, for a verification run that has to
      * visit every term.
      *
@@ -118,5 +169,54 @@ final class SubscriptionService
             ->orderBy('id')
             ->limit($limit)
             ->update(['status' => SubscriptionStatus::EXPIRED]);
+    }
+
+    private static function asInt(mixed $value): int
+    {
+        if (! is_numeric($value)) {
+            throw new UnexpectedValueException('Expected a numeric column from subscriptions, got '.get_debug_type($value).'.');
+        }
+
+        return (int) $value;
+    }
+
+    private static function asString(mixed $value): string
+    {
+        if (! is_string($value)) {
+            throw new UnexpectedValueException('Expected a string column from subscriptions, got '.get_debug_type($value).'.');
+        }
+
+        return $value;
+    }
+
+    private function readForRefund(int $subscriptionId, bool $locking): ?SubscriptionForRefund
+    {
+        $row = Subscription::query()
+            ->join('payments', 'payments.subscription_id', '=', 'subscriptions.id')
+            ->where('subscriptions.id', $subscriptionId)
+            ->when($locking, fn ($query) => $query->lockForUpdate())
+            ->first([
+                'subscriptions.id',
+                'subscriptions.status',
+                'subscriptions.price_minor',
+                'subscriptions.currency',
+                'subscriptions.term_start',
+                'payments.id as payment_id',
+            ]);
+
+        if ($row === null) {
+            return null;
+        }
+
+        return new SubscriptionForRefund(
+            $subscriptionId,
+            $row->status,
+            Money::of(
+                self::asInt($row->getAttribute('price_minor')),
+                self::asString($row->getAttribute('currency')),
+            ),
+            self::asInt($row->getAttribute('payment_id')),
+            $row->term_start,
+        );
     }
 }

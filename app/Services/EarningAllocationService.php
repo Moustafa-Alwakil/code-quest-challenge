@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Refunds\AllocationLine;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use UnexpectedValueException;
@@ -206,6 +207,74 @@ final class EarningAllocationService
         }
 
         return $totals;
+    }
+
+    /**
+     * Every allocation belonging to these periods, for a clawback to reverse
+     * exactly (F09).
+     *
+     * Amounts come back as they were written, never recomputed: running the
+     * largest-remainder split again over the same weights could place a
+     * piastre differently and would create or destroy money the ledger has
+     * already recorded.
+     *
+     * Already-clawed-back rows are excluded — one refund per subscription means
+     * this cannot normally happen, and reversing a reversal would double the
+     * debt if it ever did.
+     *
+     * @param  list<int>            $periodIds
+     * @return list<AllocationLine> ascending by instructor id, the lock order
+     */
+    public function linesForPeriods(array $periodIds): array
+    {
+        if ($periodIds === []) {
+            return [];
+        }
+
+        $lines = [];
+
+        $rows = DB::table('earning_allocations')
+            ->whereIn('accrual_period_id', $periodIds)
+            ->whereNull('clawed_back_at')
+            ->orderBy('instructor_id')
+            ->orderBy('id')
+            ->get(['id', 'instructor_id', 'amount_minor', 'released_at']);
+
+        foreach ($rows as $row) {
+            $lines[] = new AllocationLine(
+                self::asInt($row->id),
+                self::asInt($row->instructor_id),
+                self::asInt($row->amount_minor),
+                $row->released_at !== null,
+            );
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Marks allocations reversed by a refund (F09).
+     *
+     * Set on released allocations as well as held ones, which reads further
+     * than F09's prose: `clawed_back_at` is the record that this earning was
+     * taken back, and an auditor asking "which of this instructor\'s earnings
+     * were reversed" should not get a different answer depending on whether the
+     * hold had expired. The held recomputation is unaffected either way, since
+     * a released row is already outside it.
+     *
+     * @param  list<int> $ids
+     * @return int       rows reversed by this call
+     */
+    public function markClawedBack(array $ids, CarbonImmutable $clawedBackAt): int
+    {
+        if ($ids === []) {
+            return 0;
+        }
+
+        return DB::table('earning_allocations')
+            ->whereIn('id', $ids)
+            ->whereNull('clawed_back_at')
+            ->update(['clawed_back_at' => $clawedBackAt]);
     }
 
     /**
