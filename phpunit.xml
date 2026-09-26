@@ -40,6 +40,8 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <!-- Deterministic provider outcomes: the suite scripts what it wants to happen. -->
+        <env name="PAYOUT_PROVIDER" value="scripted"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <!-- Seeds property-based tests; override to replay a failing run exactly. -->

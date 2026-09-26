@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Actions\Payouts\ReserveInstructorBalanceAction;
+use App\DTOs\Payouts\ReserveInstructorBalanceData;
 use App\Enums\PayoutItemStatus;
 use App\Enums\PayoutRunStatus;
 use App\Models\Instructor;
 use App\Models\InstructorBalance;
 use App\Models\PayoutItem;
 use App\Models\PayoutRun;
+use App\Services\PayoutRunService;
 use Carbon\CarbonImmutable;
 
 /*
@@ -92,31 +95,33 @@ it('does not select an instructor the ledger has never mentioned', function (): 
 it('resumes a run that crashed after reserving only some instructors', function (): void {
     $this->travelTo(CarbonImmutable::parse('2026-09-15 09:00:00'));
 
-    /** Different prices, so one balance clears a minimum the other does not. */
-    $rich = instructorWithAvailableBalance('ch_reserve_0005', priceMinor: 300_000);
-    $lean = instructorWithAvailableBalance('ch_reserve_0006', priceMinor: 120_000);
+    $early = instructorWithAvailableBalance('ch_reserve_0005', priceMinor: 300_000);
+    $late = instructorWithAvailableBalance('ch_reserve_0006', priceMinor: 120_000);
 
-    $richAvailable = InstructorBalance::query()->findOrFail($rich->id)->available_minor;
-    $leanAvailable = InstructorBalance::query()->findOrFail($lean->id)->available_minor;
-
-    expect($richAvailable)->toBeGreaterThan($leanAvailable);
+    $earlyAvailable = InstructorBalance::query()->findOrFail($early->id)->available_minor;
+    $lateAvailable = InstructorBalance::query()->findOrFail($late->id)->available_minor;
 
     /**
-     * The state a crash mid-reservation leaves: the run exists, some
-     * instructors have committed items, and others are still sitting on a
-     * payable balance. Reproduced here with a minimum only one of them clears,
-     * which reaches exactly that state without pretending to kill a process.
+     * Exactly the state a crash mid-reservation leaves behind: the run row is
+     * committed, the first instructor's item and its posting are committed, and
+     * the process died before it reached the second instructor or dispatched
+     * anything. Built through the same Action the command uses, so the ledger
+     * is as consistent as a real half-finished run would be.
      */
-    $partialMinimum = $richAvailable;
+    $runs = app(PayoutRunService::class);
+    $runs->createIfAbsent('payout:resume', CarbonImmutable::now(), CarbonImmutable::now(), 'EGP');
+    $run = $runs->findByKey('payout:resume');
 
-    $this->artisan('payouts:run', ['--run-key' => 'payout:resume', '--min-amount' => (string) $partialMinimum])
-        ->assertSuccessful();
+    app(ReserveInstructorBalanceAction::class)(
+        ReserveInstructorBalanceData::forInstructor($run->id, $early->id, 0, 'EGP')
+    );
 
-    expect(PayoutItem::query()->count())->toBe(1);
+    expect(PayoutItem::query()->count())->toBe(1)
+        ->and(PayoutItem::query()->firstOrFail()->status)->toBe(PayoutItemStatus::RESERVED);
 
-    /** The resume: same key, full minimum. The existing item is untouched. */
     $existingItemId = PayoutItem::query()->firstOrFail()->id;
 
+    /** The resume: same key. It reserves the one that was missed... */
     $this->artisan('payouts:run', ['--run-key' => 'payout:resume', '--min-amount' => '0'])
         ->expectsOutputToContain('reserved 1')
         ->assertSuccessful();
@@ -126,10 +131,18 @@ it('resumes a run that crashed after reserving only some instructors', function 
     expect($items)->toHaveCount(2)
         ->and($items[0]->id)->toBe($existingItemId)
         ->and(PayoutRun::query()->count())->toBe(1)
-        ->and(PayoutRun::query()->firstOrFail()->item_count)->toBe(2)
-        ->and($items->every(fn (PayoutItem $item): bool => $item->status === PayoutItemStatus::RESERVED))->toBeTrue()
-        ->and(PayoutRun::query()->firstOrFail()->status)->toBe(PayoutRunStatus::DISPATCHED);
+        ->and(PayoutRun::query()->firstOrFail()->item_count)->toBe(2);
 
-    /** Both balances are out of `available` exactly once. */
-    expect(InstructorBalance::query()->sum('available_minor'))->toBe(0);
+    /**
+     * ...and dispatches *both*, including the orphan the crashed invocation
+     * left behind. That is why the dispatch list is read from the database
+     * rather than from what this invocation happened to reserve.
+     */
+    expect($items->every(fn (PayoutItem $item): bool => $item->status === PayoutItemStatus::SUCCEEDED))->toBeTrue()
+        ->and(PayoutRun::query()->firstOrFail()->status)->toBe(PayoutRunStatus::COMPLETED);
+
+    /** Both balances left `available` exactly once and were paid exactly once. */
+    expect((int) InstructorBalance::query()->sum('available_minor'))->toBe(0)
+        ->and(InstructorBalance::query()->findOrFail($early->id)->paid_minor)->toBe($earlyAvailable)
+        ->and(InstructorBalance::query()->findOrFail($late->id)->paid_minor)->toBe($lateAvailable);
 });

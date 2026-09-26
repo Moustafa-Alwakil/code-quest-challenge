@@ -8,9 +8,12 @@ use App\Actions\Accrual\ReleaseMaturedEarningsAction;
 use App\DTOs\Payouts\ReserveInstructorBalanceData;
 use App\DTOs\Payouts\RunPayoutsData;
 use App\Enums\PayoutRunStatus;
+use App\Jobs\ProcessPayoutItemJob;
 use App\Services\PayoutRunService;
 use App\Support\Payouts\PayoutRunSnapshot;
 use App\Support\Payouts\PayoutRunSummary;
+use Illuminate\Bus\Batch;
+use Illuminate\Support\Facades\Bus;
 
 /**
  * `payouts:run` — decide who is paid how much, and move that money out of
@@ -39,6 +42,7 @@ final class RunPayoutsAction
         private PayoutRunService $payoutRuns,
         private ReleaseMaturedEarningsAction $releaseMaturedEarnings,
         private ReserveInstructorBalanceAction $reserveInstructorBalance,
+        private ProcessPayoutItemAction $processPayoutItem,
         private FinalizePayoutRunAction $finalizePayoutRun,
     ) {}
 
@@ -83,15 +87,14 @@ final class RunPayoutsAction
         [$considered, $reserved, $reservedMinor, $skipped] = $this->reserveEligibleBalances($data, $run->id);
 
         /**
-         * Step 4 — every item still `reserved`, including ones a previous
-         * crashed invocation left behind.
-         *
-         * F07 dispatches `ProcessPayoutItemJob` for exactly this list, in a
-         * `Bus::batch()` whose `finally` calls `FinalizePayoutRunAction`. Until
-         * then the run stops here with its items durable and its money already
-         * out of `available` — which is the half that had to be right first.
+         * Step 4 — hand every item still `reserved` to a worker, including ones
+         * a previous crashed invocation left behind. That is why the list comes
+         * from the database rather than from what this invocation just
+         * reserved: resuming a run is the normal case, not the exception.
          */
         $dispatchable = $this->payoutRuns->dispatchableItemIds($run->id);
+
+        $this->dispatchItems($run->id, $dispatchable, $data->sync);
 
         $status = ($this->finalizePayoutRun)($run->id);
 
@@ -106,6 +109,62 @@ final class RunPayoutsAction
             $skipped,
             count($dispatchable),
         );
+    }
+
+    /**
+     * Dispatches one batch of payout jobs, or runs them inline.
+     *
+     * `afterCommit()` on every job, so a worker can never pick one up before
+     * the reservation that created it is durable — on a fast queue that race is
+     * measured in microseconds and loses money when it happens.
+     *
+     * The batch's `finally` re-finalizes the run once its jobs have stopped:
+     * some will have settled, some may be `unknown`, and only counting them
+     * afterwards can tell `completed` from `completed_with_pending` (D-8).
+     * `allowFailures()` because one instructor's provider failure must not
+     * cancel the other instructors' payments.
+     *
+     * `--sync` runs the same Action inline for tests and the demo, then
+     * finalizes once at the end for the same reason.
+     *
+     * @param list<int> $itemIds
+     */
+    private function dispatchItems(int $runId, array $itemIds, bool $sync): void
+    {
+        if ($itemIds === []) {
+            return;
+        }
+
+        if ($sync) {
+            foreach ($itemIds as $itemId) {
+                ($this->processPayoutItem)($itemId);
+            }
+
+            return;
+        }
+
+        Bus::batch(array_map(
+            static fn (int $itemId): ProcessPayoutItemJob => (new ProcessPayoutItemJob($itemId))->afterCommit(),
+            $itemIds,
+        ))
+            ->name("payouts:run {$runId}")
+            /**
+             * A batch overrides its jobs' own queue, so naming it here is what
+             * actually keeps payouts off the default queue — a dedicated queue
+             * is how provider rate limits get respected without throttling
+             * everything else (PLAN §8.4).
+             */
+            ->onQueue('payouts')
+            ->allowFailures()
+            /**
+             * Resolved inside the closure rather than captured: a batch
+             * callback is serialized, and capturing the Action would drag its
+             * Services into the payload with it.
+             */
+            ->finally(static function (Batch $batch) use ($runId): void {
+                app(FinalizePayoutRunAction::class)($runId);
+            })
+            ->dispatch();
     }
 
     /**

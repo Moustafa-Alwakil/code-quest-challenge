@@ -83,6 +83,25 @@ function egp(int $minor): App\Support\Money
 }
 
 /**
+ * The provider the suite is bound to, as the scripted mock it always is.
+ *
+ * `phpunit.xml` pins PAYOUT_PROVIDER to `scripted`, so every test gets a
+ * provider whose next answer it can choose. Its `transferCount()` is the source
+ * of truth for "the money moved once", and its `callCount()` for "we asked more
+ * than once and the dedup absorbed it".
+ */
+function provider(): App\Services\ScriptedMockProvider
+{
+    $provider = app(App\Services\PaymentProvider::class);
+
+    if (! $provider instanceof App\Services\ScriptedMockProvider) {
+        throw new RuntimeException('The suite expects the scripted provider; check PAYOUT_PROVIDER in phpunit.xml.');
+    }
+
+    return $provider;
+}
+
+/**
  * Runs the `ledger:verify` checks in-process (F12's invariant hook).
  *
  * Registered in `afterEach` by every money-touching test file, so each of those

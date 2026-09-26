@@ -18,17 +18,17 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Artisan;
 
 /*
- * Required proof #1, reservation half: "running the payout process twice never
- * double-pays."
+ * **Required proof #1**: running the payout process twice never double-pays.
  *
- * F06 owns the half that has to be right before a single byte reaches a
- * provider — the money leaves `available` atomically, and a second invocation
- * of the same key finds nothing left to reserve. The provider half (transfer
- * count per item, `paid_minor`) belongs to F07's job and is proved there.
+ * End to end, on the sync queue, against a scripted provider that succeeds:
+ * one run, one item per eligible instructor, the provider's own transfer count
+ * at exactly one per item, `paid_minor` incremented once, and `ledger:verify`
+ * green afterwards.
  *
- * Nothing here takes the cache lock. That is the point: every guarantee below
- * is a UNIQUE index or a row lock, so the suite backs the claim that if Redis
- * disappeared entirely no instructor would be paid twice.
+ * Three independent mechanisms produce that, and none of them is the cache
+ * lock: UNIQUE `(payout_run_id, instructor_id)` within a run, reserve-before-
+ * send across runs, and the provider's dedup on `idempotency_key`. Nothing here
+ * takes a lock, which is what makes this the proof rather than a demonstration.
  */
 
 afterEach(function (): void {
@@ -61,7 +61,7 @@ function instructorWithAvailableBalance(string $externalRef, int $priceMinor = 3
     return $instructor;
 }
 
-it('reserves each instructor once, however many times the run is invoked', function (): void {
+it('pays each instructor once, however many times the run is invoked', function (): void {
     $this->travelTo(CarbonImmutable::parse('2026-09-15 09:00:00'));
 
     $first = instructorWithAvailableBalance('ch_payout_0001');
@@ -78,7 +78,7 @@ it('reserves each instructor once, however many times the run is invoked', funct
         'runs' => PayoutRun::query()->orderBy('id')->get(['run_key', 'item_count', 'total_minor', 'status'])->toArray(),
         'items' => PayoutItem::query()->orderBy('id')->get(['payout_run_id', 'instructor_id', 'amount_minor', 'status'])->toArray(),
         'balances' => InstructorBalance::query()->orderBy('instructor_id')->get(['available_minor', 'reserved_minor', 'paid_minor'])->toArray(),
-        'entries' => LedgerEntry::query()->where('entry_type', LedgerEntryType::PAYOUT_RESERVED)->count(),
+        'entries' => LedgerEntry::query()->count(),
     ];
 
     $afterFirstRun = $fingerprint();
@@ -90,40 +90,64 @@ it('reserves each instructor once, however many times the run is invoked', funct
         ->and(PayoutRun::query()->count())->toBe(1)
         ->and(PayoutItem::query()->count())->toBe(2);
 
-    /** The money left `available` exactly once, and is now in transit. */
     foreach ([$first, $second] as $instructor) {
+        $item = PayoutItem::query()->where('instructor_id', $instructor->id)->firstOrFail();
         $balance = InstructorBalance::query()->findOrFail($instructor->id);
 
-        expect($balance->available_minor)->toBe(0)
-            ->and($balance->reserved_minor)->toBe($availableBefore[$instructor->id])
-            ->and($balance->paid_minor)->toBe(0)
-            /** Outstanding is unchanged: reserving moves money, it does not spend it. */
+        /** The provider moved this money once, whatever we did afterwards. */
+        expect(provider()->transferCount($item->idempotency_key))->toBe(1)
+            ->and($item->status)->toBe(PayoutItemStatus::SUCCEEDED)
+            ->and($item->amount_minor)->toBe($availableBefore[$instructor->id])
+            /** Paid once, and nothing is left in transit or available. */
+            ->and($balance->paid_minor)->toBe($availableBefore[$instructor->id])
+            ->and($balance->reserved_minor)->toBe(0)
+            ->and($balance->available_minor)->toBe(0)
             ->and($balance->outstandingMinor())->toBe($balance->available_minor + $balance->held_minor + $balance->reserved_minor);
     }
+
+    /** The run closed cleanly, because every item reached a terminal state. */
+    expect(PayoutRun::query()->firstOrFail()->status)->toBe(PayoutRunStatus::COMPLETED);
 });
 
-it('posts one reservation per item, keyed per instructor on both sides', function (): void {
+it('posts a reservation and a settlement per item, keyed per instructor', function (): void {
     $this->travelTo(CarbonImmutable::parse('2026-09-15 09:00:00'));
 
     $instructor = instructorWithAvailableBalance('ch_payout_0003');
-    $reservedMinor = InstructorBalance::query()->findOrFail($instructor->id)->available_minor;
+    $paidMinor = InstructorBalance::query()->findOrFail($instructor->id)->available_minor;
 
     $this->artisan('payouts:run')->assertSuccessful();
 
     $item = PayoutItem::query()->firstOrFail();
 
-    $legs = LedgerEntry::query()
-        ->where('entry_type', LedgerEntryType::PAYOUT_RESERVED)
+    $legsOf = fn (LedgerEntryType $type) => LedgerEntry::query()
+        ->where('entry_type', $type)
         ->where('reference_type', 'payout_item')
         ->where('reference_id', $item->id)
         ->get();
 
-    expect($legs)->toHaveCount(2)
-        ->and($legs->sum('amount_minor'))->toBe(0)
-        ->and($item->amount_minor)->toBe($reservedMinor)
-        ->and($item->status)->toBe(PayoutItemStatus::RESERVED)
-        /** What we owed the instructor is now money in transit to that same instructor (R5). */
-        ->and(ledgerSumFor(LedgerAccountType::PROVIDER_IN_TRANSIT, $instructor->id))->toBe(-$reservedMinor);
+    expect($legsOf(LedgerEntryType::PAYOUT_RESERVED))->toHaveCount(2)
+        ->and($legsOf(LedgerEntryType::PAYOUT_RESERVED)->sum('amount_minor'))->toBe(0)
+        ->and($legsOf(LedgerEntryType::PAYOUT_SETTLED))->toHaveCount(2)
+        ->and($legsOf(LedgerEntryType::PAYOUT_SETTLED)->sum('amount_minor'))->toBe(0)
+        ->and($item->amount_minor)->toBe($paidMinor)
+        ->and($item->status)->toBe(PayoutItemStatus::SUCCEEDED)
+        ->and($item->provider_reference)->not->toBeNull()
+        /**
+         * In transit and back out again: the instructor's liability went to
+         * `provider_in_transit` and then left the platform as cash, so the
+         * account returns to exactly zero (R5).
+         */
+        ->and(ledgerSumFor(LedgerAccountType::PROVIDER_IN_TRANSIT, $instructor->id))->toBe(0);
+
+    /**
+     * What the ledger still owes this instructor is exactly what the hold is
+     * keeping back — the earnings from the period whose seven days have not
+     * expired yet. Credit-normal, so the raw sum is its negation.
+     */
+    $held = InstructorBalance::query()->findOrFail($instructor->id)->held_minor;
+
+    expect($held)->toBeGreaterThan(0)
+        ->and(ledgerSumFor(LedgerAccountType::INSTRUCTOR_PAYABLE, $instructor->id))->toBe(-$held);
 });
 
 it('gives a new run key nothing to do when no new earnings have matured', function (): void {

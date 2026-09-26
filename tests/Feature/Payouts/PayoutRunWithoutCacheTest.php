@@ -8,7 +8,6 @@ use App\Models\PayoutItem;
 use App\Models\PayoutRun;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\NoLock;
-use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Facades\Cache;
 
 /*
@@ -30,6 +29,15 @@ afterEach(function (): void {
 
 beforeEach(function (): void {
     /**
+     * Resolved *before* the facade is mocked, and kept. `cache.store` is a
+     * singleton defined as `$app['cache']->driver()`, so resolving it after the
+     * swap would ask the mock for a driver and get the mock back — which
+     * recurses until the process runs out of memory. The queue's own guards
+     * resolve the cache through the container, and they need a real store.
+     */
+    $store = app('cache.store');
+
+    /**
      * `NoLock` is Laravel's own always-acquires lock — the null-cache
      * behaviour, reached here deliberately rather than by turning the cache
      * off and hoping.
@@ -37,10 +45,11 @@ beforeEach(function (): void {
     Cache::shouldReceive('lock')
         ->andReturnUsing(fn (string $name, int $seconds = 0): NoLock => new NoLock($name, $seconds));
 
-    Cache::shouldReceive('driver')->andReturnUsing(fn (): Repository => app('cache.store'));
+    Cache::shouldReceive('driver')->andReturn($store);
+    Cache::shouldReceive('store')->andReturn($store);
 });
 
-it('still reserves each instructor once when every lock is granted', function (): void {
+it('still pays each instructor once when every lock is granted', function (): void {
     $this->travelTo(CarbonImmutable::parse('2026-09-15 09:00:00'));
 
     $instructor = instructorWithAvailableBalance('ch_nolock_0001');
@@ -51,12 +60,20 @@ it('still reserves each instructor once when every lock is granted', function ()
     $this->artisan('payouts:run', ['--run-key' => 'payout:nolock'])->assertSuccessful();
     $this->artisan('payouts:run', ['--run-key' => 'payout:nolock'])->assertSuccessful();
 
+    $item = PayoutItem::query()->firstOrFail();
+    $balance = InstructorBalance::query()->findOrFail($instructor->id);
+
     expect(PayoutRun::query()->count())->toBe(1)
         ->and(PayoutItem::query()->count())->toBe(1)
-        ->and(PayoutItem::query()->firstOrFail()->amount_minor)->toBe($available)
+        ->and($item->amount_minor)->toBe($available)
+        /** One reservation and one settlement, two legs each. */
         ->and(LedgerEntry::query()->where('entry_type', 'payout_reserved')->count())->toBe(2)
-        ->and(InstructorBalance::query()->findOrFail($instructor->id)->available_minor)->toBe(0)
-        ->and(InstructorBalance::query()->findOrFail($instructor->id)->reserved_minor)->toBe($available);
+        ->and(LedgerEntry::query()->where('entry_type', 'payout_settled')->count())->toBe(2)
+        /** And the provider moved the money exactly once. */
+        ->and(provider()->transferCount($item->idempotency_key))->toBe(1)
+        ->and($balance->available_minor)->toBe(0)
+        ->and($balance->reserved_minor)->toBe(0)
+        ->and($balance->paid_minor)->toBe($available);
 });
 
 it('still gives a second run key nothing, because the money already left available', function (): void {
