@@ -7,10 +7,10 @@ namespace App\Actions\Accrual;
 use App\DTOs\Accrual\RecognizePeriodData;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
-use App\Services\AccrualService;
-use App\Services\EarningAllocationService;
-use App\Services\EngagementService;
-use App\Services\LedgerService;
+use App\Services\Contracts\AccrualServiceContract;
+use App\Services\Contracts\EarningAllocationServiceContract;
+use App\Services\Contracts\EngagementServiceContract;
+use App\Services\Contracts\LedgerServiceContract;
 use App\Support\Accrual\PeriodForRecognition;
 use App\Support\Accrual\RecognitionOutcome;
 use App\Support\Allocator;
@@ -41,10 +41,10 @@ use Illuminate\Support\Facades\DB;
 final class RecognizeAccrualPeriodAction
 {
     public function __construct(
-        private AccrualService $accrual,
-        private EngagementService $engagement,
-        private EarningAllocationService $allocations,
-        private LedgerService $ledger,
+        private AccrualServiceContract $accrual,
+        private EngagementServiceContract $engagement,
+        private EarningAllocationServiceContract $allocations,
+        private LedgerServiceContract $ledger,
     ) {}
 
     public function __invoke(RecognizePeriodData $data): RecognitionOutcome

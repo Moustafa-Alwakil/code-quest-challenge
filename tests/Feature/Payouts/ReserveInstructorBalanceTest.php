@@ -10,7 +10,7 @@ use App\Models\Instructor;
 use App\Models\InstructorBalance;
 use App\Models\PayoutItem;
 use App\Models\PayoutRun;
-use App\Services\PayoutRunService;
+use App\Services\Contracts\PayoutRunServiceContract;
 use Carbon\CarbonImmutable;
 
 /*
@@ -108,7 +108,7 @@ it('resumes a run that crashed after reserving only some instructors', function 
      * anything. Built through the same Action the command uses, so the ledger
      * is as consistent as a real half-finished run would be.
      */
-    $runs = app(PayoutRunService::class);
+    $runs = app(PayoutRunServiceContract::class);
     $runs->createIfAbsent('payout:resume', CarbonImmutable::now(), CarbonImmutable::now(), 'EGP');
     $run = $runs->findByKey('payout:resume');
 

@@ -8,7 +8,7 @@ use App\Models\Instructor;
 use App\Models\InstructorBalance;
 use App\Models\PayoutItem;
 use App\Models\PayoutRun;
-use App\Services\PayoutRunService;
+use App\Services\Contracts\PayoutRunServiceContract;
 use App\Support\Payouts\ReservationOutcome;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +42,7 @@ it('never reserves a negative balance, whatever the minimum', function (int $min
         'available_minor' => -5_000,
     ]);
 
-    $runs = app(PayoutRunService::class);
+    $runs = app(PayoutRunServiceContract::class);
     $runs->createIfAbsent('payout:negative', CarbonImmutable::now(), CarbonImmutable::now(), 'EGP');
     $run = $runs->findByKey('payout:negative');
 
@@ -78,7 +78,7 @@ it('is not selected by the run sweep either', function (): void {
      * reach the Action. Both guards exist because the query is an optimization
      * and the Action's check is the one that runs under the row lock.
      */
-    $payable = app(PayoutRunService::class)->payableBalances(0, 0, 100);
+    $payable = app(PayoutRunServiceContract::class)->payableBalances(0, 0, 100);
 
     expect($payable)->toBe([]);
 

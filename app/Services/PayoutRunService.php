@@ -8,6 +8,7 @@ use App\Enums\PayoutItemStatus;
 use App\Enums\PayoutRunStatus;
 use App\Models\PayoutItem;
 use App\Models\PayoutRun;
+use App\Services\Contracts\PayoutRunServiceContract;
 use App\Support\Payouts\PayoutRunSnapshot;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ use UnexpectedValueException;
  * loses the insert and reads the winner's row, which is the same path a
  * sequential re-run takes.
  */
-final class PayoutRunService
+final class PayoutRunService implements PayoutRunServiceContract
 {
     /**
      * Creates the run for this key, or returns nothing if it already exists.

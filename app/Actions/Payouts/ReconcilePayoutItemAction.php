@@ -8,8 +8,8 @@ use App\Enums\PayoutAttemptOperation;
 use App\Enums\PayoutItemStatus;
 use App\Enums\TransferStatus;
 use App\Jobs\ProcessPayoutItemJob;
+use App\Services\Contracts\PayoutItemServiceContract;
 use App\Services\PaymentProvider;
-use App\Services\PayoutItemService;
 use App\Support\Payouts\PayoutItemSnapshot;
 use App\Support\Payouts\ReconciliationSchedule;
 use App\Support\Payouts\TransferResult;
@@ -37,7 +37,7 @@ use Carbon\CarbonImmutable;
 final class ReconcilePayoutItemAction
 {
     public function __construct(
-        private PayoutItemService $payoutItems,
+        private PayoutItemServiceContract $payoutItems,
         private PaymentProvider $provider,
         private SettlePayoutItemAction $settlePayoutItem,
         private ReversePayoutItemAction $reversePayoutItem,

@@ -10,10 +10,10 @@ use App\DTOs\Refunds\IssueRefundData;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
 use App\Exceptions\RefundMismatchException;
-use App\Services\AccrualService;
-use App\Services\LedgerService;
-use App\Services\RefundService;
-use App\Services\SubscriptionService;
+use App\Services\Contracts\AccrualServiceContract;
+use App\Services\Contracts\LedgerServiceContract;
+use App\Services\Contracts\RefundServiceContract;
+use App\Services\Contracts\SubscriptionServiceContract;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
 use App\Support\Money;
@@ -44,10 +44,10 @@ use App\Support\Refunds\SubscriptionForRefund;
 final class ApplyProrataRefundAction
 {
     public function __construct(
-        private SubscriptionService $subscriptions,
-        private AccrualService $accrual,
-        private RefundService $refunds,
-        private LedgerService $ledger,
+        private SubscriptionServiceContract $subscriptions,
+        private AccrualServiceContract $accrual,
+        private RefundServiceContract $refunds,
+        private LedgerServiceContract $ledger,
         private RecognizeAccrualPeriodAction $recognizeAccrualPeriod,
     ) {}
 

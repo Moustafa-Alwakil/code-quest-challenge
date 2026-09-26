@@ -7,9 +7,9 @@ namespace App\Actions\Subscriptions;
 use App\Enums\AccrualPeriodStatus;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
-use App\Services\AccrualService;
-use App\Services\LedgerService;
-use App\Services\SubscriptionService;
+use App\Services\Contracts\AccrualServiceContract;
+use App\Services\Contracts\LedgerServiceContract;
+use App\Services\Contracts\SubscriptionServiceContract;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
 use App\Support\Subscriptions\BulkTerm;
@@ -36,9 +36,9 @@ use Illuminate\Support\Facades\DB;
 final class SubscribeStudentsInBulkAction
 {
     public function __construct(
-        private SubscriptionService $subscriptions,
-        private AccrualService $accrual,
-        private LedgerService $ledger,
+        private SubscriptionServiceContract $subscriptions,
+        private AccrualServiceContract $accrual,
+        private LedgerServiceContract $ledger,
     ) {}
 
     /**

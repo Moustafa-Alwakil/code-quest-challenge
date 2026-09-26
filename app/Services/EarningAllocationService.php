@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Services\Contracts\EarningAllocationServiceContract;
 use App\Support\Refunds\AllocationLine;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -22,10 +23,8 @@ use UnexpectedValueException;
  * against UNIQUE `(accrual_period_id, instructor_id)`, and the release is a
  * conditional `UPDATE` whose WHERE a released row no longer matches.
  */
-final class EarningAllocationService
+final class EarningAllocationService implements EarningAllocationServiceContract
 {
-    private const DEFAULT_CHUNK_SIZE = 1000;
-
     /**
      * Writes one recognized period's allocations in a single statement.
      *

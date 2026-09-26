@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Actions\Accrual;
 
 use App\DTOs\Accrual\ReleaseMaturedEarningsData;
-use App\Services\EarningAllocationService;
-use App\Services\InstructorBalanceService;
+use App\Services\Contracts\EarningAllocationServiceContract;
+use App\Services\Contracts\InstructorBalanceServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use Illuminate\Support\Facades\DB;
 
@@ -31,8 +31,8 @@ use Illuminate\Support\Facades\DB;
 final class ReleaseMaturedEarningsAction
 {
     public function __construct(
-        private EarningAllocationService $allocations,
-        private InstructorBalanceService $balances,
+        private EarningAllocationServiceContract $allocations,
+        private InstructorBalanceServiceContract $balances,
     ) {}
 
     /**

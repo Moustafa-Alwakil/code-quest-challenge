@@ -9,7 +9,7 @@ use App\DTOs\Payouts\ReserveInstructorBalanceData;
 use App\DTOs\Payouts\RunPayoutsData;
 use App\Enums\PayoutRunStatus;
 use App\Jobs\ProcessPayoutItemJob;
-use App\Services\PayoutRunService;
+use App\Services\Contracts\PayoutRunServiceContract;
 use App\Support\Payouts\PayoutRunSnapshot;
 use App\Support\Payouts\PayoutRunSummary;
 use Illuminate\Bus\Batch;
@@ -39,7 +39,7 @@ use Illuminate\Support\Facades\Bus;
 final class RunPayoutsAction
 {
     public function __construct(
-        private PayoutRunService $payoutRuns,
+        private PayoutRunServiceContract $payoutRuns,
         private ReleaseMaturedEarningsAction $releaseMaturedEarnings,
         private ReserveInstructorBalanceAction $reserveInstructorBalance,
         private ProcessPayoutItemAction $processPayoutItem,

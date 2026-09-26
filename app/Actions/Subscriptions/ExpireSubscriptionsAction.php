@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Subscriptions;
 
 use App\DTOs\Subscriptions\ExpireSubscriptionsData;
-use App\Services\SubscriptionService;
+use App\Services\Contracts\SubscriptionServiceContract;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
 final class ExpireSubscriptionsAction
 {
     public function __construct(
-        private SubscriptionService $subscriptions,
+        private SubscriptionServiceContract $subscriptions,
     ) {}
 
     /**

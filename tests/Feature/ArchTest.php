@@ -190,6 +190,54 @@ arch('entry points go through actions')
     ->not->toUse(['App\Services', 'App\Models', 'Illuminate\Support\Facades\DB']);
 
 /**
+ * Aggregates are reached through their contracts, never their classes.
+ *
+ * The advertised benefit — swapping a persistence implementation — is the rare
+ * one. The everyday benefit is that R14's promise, "every Action unit-testable
+ * against a faked Service", was unreachable while the services were `final`:
+ * PHPUnit cannot double a final class, so an Action's collaborators could only
+ * ever be the real thing talking to a real database.
+ *
+ * The binding table in `AppServiceProvider` is the one place allowed to name
+ * both sides, because naming both sides is precisely what it is for.
+ */
+it('reaches every service through its contract', function (): void {
+    $concrete = collect(File::allFiles(app_path('Services')))
+        ->reject(fn ($file): bool => str_contains($file->getRelativePathname(), 'Contracts'))
+        ->map(fn ($file): string => Str::before($file->getFilename(), '.php'))
+        /** The provider contract and its two mocks are already an interface and its implementations. */
+        ->reject(fn (string $class): bool => in_array($class, ['PaymentProvider', 'RandomMockProvider', 'ScriptedMockProvider'], true))
+        ->values();
+
+    expect($concrete)->not->toBeEmpty();
+
+    $offenders = [];
+
+    foreach (['Actions', 'Jobs', 'Console', 'Filament'] as $layer) {
+        foreach (File::allFiles(app_path($layer)) as $file) {
+            $source = File::get($file->getRealPath());
+
+            foreach ($concrete as $class) {
+                if (Str::contains($source, "use App\\Services\\{$class};")) {
+                    $offenders[] = $file->getRelativePathname()." uses App\\Services\\{$class}";
+                }
+            }
+        }
+    }
+
+    expect($offenders)->toBe([], 'These reach a service class directly; type-hint its contract in App\\Services\\Contracts instead.');
+});
+
+/**
+ * A contract describes a collaborator, so it must not drag an implementation in
+ * with it — that would make "depend on the interface" true on paper and false
+ * in the dependency graph.
+ */
+arch('contracts are interfaces that name no implementation')
+    ->expect('App\Services\Contracts')
+    ->toBeInterfaces();
+
+/**
  * Named for what it proves. The transaction half of the rule — that a Service
  * never opens one, because `LedgerService::post()`'s whole contract is that the
  * caller owns the transaction it commits with — cannot be expressed as a `use`

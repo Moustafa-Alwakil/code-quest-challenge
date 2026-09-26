@@ -8,11 +8,11 @@ use App\DTOs\Refunds\IssueRefundData;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
 use App\Exceptions\RefundMismatchException;
-use App\Services\AccrualService;
-use App\Services\EarningAllocationService;
-use App\Services\LedgerService;
-use App\Services\RefundService;
-use App\Services\SubscriptionService;
+use App\Services\Contracts\AccrualServiceContract;
+use App\Services\Contracts\EarningAllocationServiceContract;
+use App\Services\Contracts\LedgerServiceContract;
+use App\Services\Contracts\RefundServiceContract;
+use App\Services\Contracts\SubscriptionServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
@@ -50,11 +50,11 @@ use App\Support\Refunds\SubscriptionForRefund;
 final class ApplyFullRefundAction
 {
     public function __construct(
-        private SubscriptionService $subscriptions,
-        private AccrualService $accrual,
-        private EarningAllocationService $allocations,
-        private RefundService $refunds,
-        private LedgerService $ledger,
+        private SubscriptionServiceContract $subscriptions,
+        private AccrualServiceContract $accrual,
+        private EarningAllocationServiceContract $allocations,
+        private RefundServiceContract $refunds,
+        private LedgerServiceContract $ledger,
     ) {}
 
     public function __invoke(IssueRefundData $data, SubscriptionForRefund $subscription, RefundPlan $plan): RefundOutcome

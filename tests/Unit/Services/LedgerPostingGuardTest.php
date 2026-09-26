@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Exceptions\LedgerIntegrityException;
-use App\Services\LedgerService;
+use App\Services\Contracts\LedgerServiceContract;
 use Tests\Support\LedgerPostings;
 use Tests\TestCase;
 
@@ -29,7 +29,7 @@ it('refuses to post outside an open database transaction', function (): void {
         instructorMinor: 7_000,
     );
 
-    expect(fn () => app(LedgerService::class)->post($transaction))
+    expect(fn () => app(LedgerServiceContract::class)->post($transaction))
         ->toThrow(LedgerIntegrityException::class, 'outside a database transaction')
         ->and(DB::transactionLevel())->toBe(0);
 });
@@ -37,6 +37,6 @@ it('refuses to post outside an open database transaction', function (): void {
 it('names the transaction it refused, so the log says which posting was dropped', function (): void {
     $transaction = LedgerPostings::reservation(payoutItemId: 88, instructorId: 4, amountMinor: 5_000);
 
-    expect(fn () => app(LedgerService::class)->post($transaction))
+    expect(fn () => app(LedgerServiceContract::class)->post($transaction))
         ->toThrow(LedgerIntegrityException::class, 'payout_reserved for payout_item#88');
 });

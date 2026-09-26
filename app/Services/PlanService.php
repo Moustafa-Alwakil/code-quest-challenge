@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Plan;
+use App\Services\Contracts\PlanServiceContract;
 use App\Support\Money;
 use App\Support\Subscriptions\PlanTerms;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  * here, with the aggregate it belongs to, rather than being smuggled into
  * SubscriptionService because that was closer to hand.
  */
-final class PlanService
+final class PlanService implements PlanServiceContract
 {
     /**
      * @throws ModelNotFoundException<Plan> when the plan does not exist — a payment for a plan that

@@ -7,6 +7,15 @@ namespace App\Services;
 use App\Enums\LedgerEntryType;
 use App\Enums\RefundType;
 use App\Models\InstructorBalance;
+use App\Services\Contracts\AccrualServiceContract;
+use App\Services\Contracts\EarningAllocationServiceContract;
+use App\Services\Contracts\InstructorBalanceServiceContract;
+use App\Services\Contracts\LedgerServiceContract;
+use App\Services\Contracts\LedgerVerificationServiceContract;
+use App\Services\Contracts\PayoutItemServiceContract;
+use App\Services\Contracts\RefundServiceContract;
+use App\Services\Contracts\SubscriptionServiceContract;
+use App\Support\Ledger\BalanceTotals;
 use App\Support\Ledger\LedgerMismatch;
 use App\Support\Ledger\LedgerVerificationResult;
 
@@ -30,18 +39,16 @@ use App\Support\Ledger\LedgerVerificationResult;
  * under `--instructor=`, like checks 1 and 2, because none is a fact about one
  * instructor.
  */
-final class LedgerVerificationService
+final class LedgerVerificationService implements LedgerVerificationServiceContract
 {
-    private const DEFAULT_CHUNK_SIZE = 1000;
-
     public function __construct(
-        private LedgerService $ledger,
-        private InstructorBalanceService $balances,
-        private AccrualService $accrual,
-        private EarningAllocationService $allocations,
-        private SubscriptionService $subscriptions,
-        private RefundService $refunds,
-        private PayoutItemService $payoutItems,
+        private LedgerServiceContract $ledger,
+        private InstructorBalanceServiceContract $balances,
+        private AccrualServiceContract $accrual,
+        private EarningAllocationServiceContract $allocations,
+        private SubscriptionServiceContract $subscriptions,
+        private RefundServiceContract $refunds,
+        private PayoutItemServiceContract $payoutItems,
     ) {}
 
     /**
@@ -90,7 +97,7 @@ final class LedgerVerificationService
             $instructorsChecked++;
             $id = $snapshot->instructor_id;
 
-            $expected = $recomputed[$id] ?? InstructorBalanceService::zeroTotals();
+            $expected = $recomputed[$id] ?? BalanceTotals::zero();
             unset($recomputed[$id]);
 
             $stored = self::storedColumns($snapshot);

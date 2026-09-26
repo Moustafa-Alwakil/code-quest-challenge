@@ -6,10 +6,10 @@ namespace App\Actions\Refunds;
 
 use App\DTOs\Refunds\IssueRefundData;
 use App\Enums\RefundType;
-use App\Services\AccrualService;
-use App\Services\EarningAllocationService;
-use App\Services\RefundService;
-use App\Services\SubscriptionService;
+use App\Services\Contracts\AccrualServiceContract;
+use App\Services\Contracts\EarningAllocationServiceContract;
+use App\Services\Contracts\RefundServiceContract;
+use App\Services\Contracts\SubscriptionServiceContract;
 use App\Support\Refunds\ClawbackPlan;
 use App\Support\Refunds\RefundOutcome;
 use App\Support\Refunds\RefundPlan;
@@ -37,10 +37,10 @@ use InvalidArgumentException;
 final class IssueRefundAction
 {
     public function __construct(
-        private SubscriptionService $subscriptions,
-        private AccrualService $accrual,
-        private EarningAllocationService $allocations,
-        private RefundService $refunds,
+        private SubscriptionServiceContract $subscriptions,
+        private AccrualServiceContract $accrual,
+        private EarningAllocationServiceContract $allocations,
+        private RefundServiceContract $refunds,
         private ApplyProrataRefundAction $applyProrataRefund,
         private ApplyFullRefundAction $applyFullRefund,
     ) {}

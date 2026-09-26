@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Enums\TransferStatus;
 use App\Models\MockProviderTransfer;
+use App\Services\Contracts\MockProviderStoreContract;
 use App\Support\Payouts\TransferResult;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
@@ -22,9 +23,9 @@ use Illuminate\Support\Str;
  * `ScriptedMockProvider` cannot disagree about the contract they are both
  * supposed to be modelling.
  */
-final class MockProviderStore
+final class MockProviderStore implements MockProviderStoreContract
 {
-    public static function resultFor(MockProviderTransfer $transfer): TransferResult
+    public function resultFor(MockProviderTransfer $transfer): TransferResult
     {
         return match ($transfer->status) {
             TransferStatus::SUCCEEDED => TransferResult::succeeded(
@@ -105,7 +106,7 @@ final class MockProviderStore
     public function checkStatus(MockProviderTransfer $transfer): TransferResult
     {
         if ($transfer->status !== TransferStatus::PENDING) {
-            return self::resultFor($transfer);
+            return $this->resultFor($transfer);
         }
 
         $transfer->increment('status_checks');
@@ -120,7 +121,7 @@ final class MockProviderStore
             $transfer->refresh();
         }
 
-        return self::resultFor($transfer);
+        return $this->resultFor($transfer);
     }
 
     /**

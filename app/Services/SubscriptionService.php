@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Enums\SubscriptionStatus;
 use App\Models\Payment;
 use App\Models\Subscription;
+use App\Services\Contracts\SubscriptionServiceContract;
 use App\Support\Money;
 use App\Support\Refunds\SubscriptionForRefund;
 use App\Support\Subscriptions\BulkTerm;
@@ -27,7 +28,7 @@ use UnexpectedValueException;
  * replays. Swallowing the violation here would leave the loser holding a
  * subscription with no payment behind it.
  */
-final class SubscriptionService
+final class SubscriptionService implements SubscriptionServiceContract
 {
     /**
      * The subscription a captured payment already paid for, if this

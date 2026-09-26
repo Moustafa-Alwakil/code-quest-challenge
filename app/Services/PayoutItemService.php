@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Enums\PayoutAttemptOperation;
 use App\Enums\PayoutItemStatus;
 use App\Models\PayoutItem;
+use App\Services\Contracts\PayoutItemServiceContract;
 use App\Support\Payouts\PayoutItemSnapshot;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -27,30 +28,8 @@ use UnexpectedValueException;
  * posting are one fact, while the submit CAS must commit *alone* and before the
  * provider is called at all.
  */
-final class PayoutItemService
+final class PayoutItemService implements PayoutItemServiceContract
 {
-    /**
-     * The statuses an item can hold while the provider still owes an answer.
-     *
-     * The default source of every automated settlement: a worker or the
-     * reconciliation sweep may only resolve something it is still waiting on.
-     *
-     * @var list<PayoutItemStatus>
-     */
-    public const AWAITING_OUTCOME = [PayoutItemStatus::SUBMITTED, PayoutItemStatus::UNKNOWN];
-
-    /**
-     * The status only a person can move an item out of (F08).
-     *
-     * Kept separate from `AWAITING_OUTCOME` on purpose: widening the automated
-     * CAS to include `needs_review` would let a retried job quietly resolve an
-     * item a human was asked to look at, which is the one thing parking it
-     * there was supposed to prevent.
-     *
-     * @var list<PayoutItemStatus>
-     */
-    public const UNDER_REVIEW = [PayoutItemStatus::NEEDS_REVIEW];
-
     /**
      * How long after submitting before reconciliation should start asking.
      */

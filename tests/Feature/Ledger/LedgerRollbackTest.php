@@ -8,7 +8,7 @@ use App\Exceptions\LedgerIntegrityException;
 use App\Models\Instructor;
 use App\Models\InstructorBalance;
 use App\Models\LedgerEntry;
-use App\Services\LedgerService;
+use App\Services\Contracts\LedgerServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
@@ -60,7 +60,7 @@ it('rolls a successful posting back out of the snapshot when a later posting fai
      * first one's snapshot increment is already in the row when it throws.
      */
     $attempt = fn () => DB::transaction(function () use ($instructor, $other, $collision): void {
-        app(LedgerService::class)->post(
+        app(LedgerServiceContract::class)->post(
             LedgerPostings::recognition(
                 periodId: 2,
                 subscriptionId: 1,
@@ -74,7 +74,7 @@ it('rolls a successful posting back out of the snapshot when a later posting fai
         /** Proof the increment landed before the failure — it is this that must be undone. */
         expect(InstructorBalance::query()->findOrFail($instructor->id)->earned_minor)->toBe(14_000);
 
-        app(LedgerService::class)->post($collision, LedgerPostings::recognizedAndReleased($other->id, 10_000));
+        app(LedgerServiceContract::class)->post($collision, LedgerPostings::recognizedAndReleased($other->id, 10_000));
     });
 
     expect($attempt)->toThrow(LedgerIntegrityException::class);
@@ -93,7 +93,7 @@ it('rolls the snapshot back when the business state change fails after a good po
     $instructor = Instructor::factory()->create();
 
     $attempt = fn () => DB::transaction(function () use ($instructor): void {
-        app(LedgerService::class)->post(
+        app(LedgerServiceContract::class)->post(
             LedgerPostings::recognition(
                 periodId: 1,
                 subscriptionId: 1,
@@ -133,7 +133,7 @@ it('rolls a replay back cleanly, leaving the original posting intact', function 
     LedgerPostings::post($recognition(), LedgerPostings::recognizedAndReleased($instructor->id, 7_000));
 
     $attempt = fn () => DB::transaction(function () use ($recognition, $instructor): void {
-        $replayed = app(LedgerService::class)->post(
+        $replayed = app(LedgerServiceContract::class)->post(
             $recognition(),
             LedgerPostings::recognizedAndReleased($instructor->id, 7_000),
         );

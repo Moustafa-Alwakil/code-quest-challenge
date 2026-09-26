@@ -7,8 +7,8 @@ namespace App\Actions\Payouts;
 use App\DTOs\Payouts\ReserveInstructorBalanceData;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
-use App\Services\LedgerService;
-use App\Services\PayoutRunService;
+use App\Services\Contracts\LedgerServiceContract;
+use App\Services\Contracts\PayoutRunServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
@@ -41,8 +41,8 @@ use Illuminate\Support\Facades\DB;
 final class ReserveInstructorBalanceAction
 {
     public function __construct(
-        private PayoutRunService $payoutRuns,
-        private LedgerService $ledger,
+        private PayoutRunServiceContract $payoutRuns,
+        private LedgerServiceContract $ledger,
     ) {}
 
     public function __invoke(ReserveInstructorBalanceData $data): ReservationOutcome

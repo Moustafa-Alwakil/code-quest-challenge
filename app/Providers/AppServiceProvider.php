@@ -4,10 +4,22 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Services\AccrualService;
+use App\Services\Contracts;
+use App\Services\EarningAllocationService;
+use App\Services\EngagementService;
+use App\Services\InstructorBalanceService;
+use App\Services\LedgerService;
+use App\Services\LedgerVerificationService;
 use App\Services\MockProviderStore;
 use App\Services\PaymentProvider;
+use App\Services\PayoutItemService;
+use App\Services\PayoutRunService;
+use App\Services\PlanService;
 use App\Services\RandomMockProvider;
+use App\Services\RefundService;
 use App\Services\ScriptedMockProvider;
+use App\Services\SubscriptionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\ServiceProvider;
@@ -18,8 +30,42 @@ final class AppServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      */
+    /**
+     * Every aggregate is reached through its contract, never its class.
+     *
+     * Two reasons, and the second is the one that bites. Swapping a persistence
+     * implementation is the advertised benefit and the rarer one. The everyday
+     * benefit is that R14's promise — "every Action unit-testable against a
+     * faked Service" — was unreachable while the services were `final`: PHPUnit
+     * cannot double a final class, so an Action's collaborators could only ever
+     * be the real thing talking to a real database.
+     *
+     * Bound as singletons because every one of them is stateless: they hold
+     * queries, not data.
+     *
+     * @var array<class-string, class-string>
+     */
+    private const AGGREGATES = [
+        Contracts\AccrualServiceContract::class => AccrualService::class,
+        Contracts\EarningAllocationServiceContract::class => EarningAllocationService::class,
+        Contracts\EngagementServiceContract::class => EngagementService::class,
+        Contracts\InstructorBalanceServiceContract::class => InstructorBalanceService::class,
+        Contracts\LedgerServiceContract::class => LedgerService::class,
+        Contracts\LedgerVerificationServiceContract::class => LedgerVerificationService::class,
+        Contracts\MockProviderStoreContract::class => MockProviderStore::class,
+        Contracts\PayoutItemServiceContract::class => PayoutItemService::class,
+        Contracts\PayoutRunServiceContract::class => PayoutRunService::class,
+        Contracts\PlanServiceContract::class => PlanService::class,
+        Contracts\RefundServiceContract::class => RefundService::class,
+        Contracts\SubscriptionServiceContract::class => SubscriptionService::class,
+    ];
+
     public function register(): void
     {
+        foreach (self::AGGREGATES as $contract => $implementation) {
+            $this->app->singleton($contract, $implementation);
+        }
+
         $this->app->singleton(PaymentProvider::class, function (): PaymentProvider {
             $configured = config('revenue.payout_provider');
 
@@ -66,6 +112,6 @@ final class AppServiceProvider extends ServiceProvider
         }
 
         /** @var array{success: int, permanent_failure: int, timeout_after_success: int, delayed_confirmation: int} $outcomes */
-        return new RandomMockProvider($this->app->make(MockProviderStore::class), $outcomes, $confirmAfter);
+        return new RandomMockProvider($this->app->make(Contracts\MockProviderStoreContract::class), $outcomes, $confirmAfter);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Engagement;
+use App\Services\Contracts\EngagementServiceContract;
 use Carbon\CarbonImmutable;
 
 /**
@@ -17,7 +18,7 @@ use Carbon\CarbonImmutable;
  * F02 documents — engagement recorded for a period that has already been
  * recognized changes nothing.
  */
-final class EngagementService
+final class EngagementService implements EngagementServiceContract
 {
     /**
      * The engagement weights for one subscription-period, keyed by instructor.

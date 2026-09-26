@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Models\Instructor;
 use App\Models\InstructorBalance;
 use App\Models\LedgerEntry;
-use App\Services\LedgerService;
+use App\Services\Contracts\LedgerServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use Illuminate\Database\Connection;
 use Tests\Support\Interleaved;
@@ -37,7 +37,7 @@ afterEach(function (): void {
  */
 function samePosting(int $instructorId): Closure
 {
-    return fn (): bool => app(LedgerService::class)->post(
+    return fn (): bool => app(LedgerServiceContract::class)->post(
         LedgerPostings::recognition(
             periodId: 1,
             subscriptionId: 1,
@@ -51,7 +51,7 @@ function samePosting(int $instructorId): Closure
 
 function postRecognition(int $periodId, int $instructorId, int $instructorMinor): bool
 {
-    return app(LedgerService::class)->post(
+    return app(LedgerServiceContract::class)->post(
         LedgerPostings::recognition(
             periodId: $periodId,
             subscriptionId: 1,
@@ -276,7 +276,7 @@ it('applies a clawback and a reservation racing on one row without losing either
     Interleaved::as(Interleaved::SESSION_A, function () use ($a, $instructor): void {
         $a->beginTransaction();
 
-        app(LedgerService::class)->post(
+        app(LedgerServiceContract::class)->post(
             LedgerPostings::reservation(payoutItemId: 1, instructorId: $instructor->id, amountMinor: 6_000),
             BalanceDelta::reserved($instructor->id, 6_000),
         );
@@ -285,7 +285,7 @@ it('applies a clawback and a reservation racing on one row without losing either
     $blocked = Interleaved::expectBlocked(Interleaved::SESSION_B, function (Connection $b) use ($instructor): void {
         $b->beginTransaction();
 
-        app(LedgerService::class)->post(
+        app(LedgerServiceContract::class)->post(
             LedgerPostings::clawback(refundId: 1, instructorId: $instructor->id, amountMinor: 9_000),
             BalanceDelta::clawedBack($instructor->id, fromHeldMinor: 0, fromAvailableMinor: 9_000),
         );
@@ -296,7 +296,7 @@ it('applies a clawback and a reservation racing on one row without losing either
 
     Interleaved::as(Interleaved::SESSION_A, fn () => $a->commit());
 
-    Interleaved::as(Interleaved::SESSION_B, fn (Connection $b) => $b->transaction(fn () => app(LedgerService::class)->post(
+    Interleaved::as(Interleaved::SESSION_B, fn (Connection $b) => $b->transaction(fn () => app(LedgerServiceContract::class)->post(
         LedgerPostings::clawback(refundId: 1, instructorId: $instructor->id, amountMinor: 9_000),
         BalanceDelta::clawedBack($instructor->id, fromHeldMinor: 0, fromAvailableMinor: 9_000),
     )));

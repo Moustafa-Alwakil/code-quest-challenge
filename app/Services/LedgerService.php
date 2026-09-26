@@ -7,6 +7,8 @@ namespace App\Services;
 use App\Enums\LedgerAccountType;
 use App\Exceptions\LedgerIntegrityException;
 use App\Models\LedgerEntry;
+use App\Services\Contracts\InstructorBalanceServiceContract;
+use App\Services\Contracts\LedgerServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
@@ -22,10 +24,10 @@ use UnexpectedValueException;
  * account_id)` and on MySQL's affected-row count, not on a lock: if Redis
  * vanished mid-run, a replayed posting would still be a no-op.
  */
-final class LedgerService
+final class LedgerService implements LedgerServiceContract
 {
     public function __construct(
-        private InstructorBalanceService $balances,
+        private InstructorBalanceServiceContract $balances,
     ) {}
 
     /**

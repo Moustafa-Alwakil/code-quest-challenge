@@ -6,7 +6,7 @@ namespace App\Actions\Payouts;
 
 use App\Enums\PayoutItemStatus;
 use App\Enums\PayoutRunStatus;
-use App\Services\PayoutRunService;
+use App\Services\Contracts\PayoutRunServiceContract;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\DB;
 final class FinalizePayoutRunAction
 {
     public function __construct(
-        private PayoutRunService $payoutRuns,
+        private PayoutRunServiceContract $payoutRuns,
     ) {}
 
     /**

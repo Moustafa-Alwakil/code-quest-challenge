@@ -6,7 +6,7 @@ namespace Tests\Support;
 
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
-use App\Services\LedgerService;
+use App\Services\Contracts\LedgerServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
@@ -31,7 +31,7 @@ final class LedgerPostings
     public static function post(LedgerTransaction $transaction, BalanceDelta ...$deltas): bool
     {
         return DB::transaction(
-            fn (): bool => app(LedgerService::class)->post($transaction, ...$deltas),
+            fn (): bool => app(LedgerServiceContract::class)->post($transaction, ...$deltas),
         );
     }
 

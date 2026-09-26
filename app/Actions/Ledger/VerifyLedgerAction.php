@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Ledger;
 
 use App\DTOs\Ledger\VerifyLedgerData;
-use App\Services\LedgerVerificationService;
+use App\Services\Contracts\LedgerVerificationServiceContract;
 use App\Support\Ledger\LedgerVerificationResult;
 
 /**
@@ -19,7 +19,7 @@ use App\Support\Ledger\LedgerVerificationResult;
 final class VerifyLedgerAction
 {
     public function __construct(
-        private LedgerVerificationService $verification,
+        private LedgerVerificationServiceContract $verification,
     ) {}
 
     public function __invoke(VerifyLedgerData $data): LedgerVerificationResult

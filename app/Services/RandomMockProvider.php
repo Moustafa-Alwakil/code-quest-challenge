@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Enums\TransferStatus;
 use App\Exceptions\ProviderTimeoutException;
+use App\Services\Contracts\MockProviderStoreContract;
 use App\Support\Payouts\TransferResult;
 use InvalidArgumentException;
 
@@ -28,7 +29,7 @@ final class RandomMockProvider implements PaymentProvider
      * @param array{success: int, permanent_failure: int, timeout_after_success: int, delayed_confirmation: int} $outcomeWeights
      */
     public function __construct(
-        private MockProviderStore $store,
+        private MockProviderStoreContract $store,
         private array $outcomeWeights,
         private int $confirmAfterChecks,
     ) {}
@@ -44,7 +45,7 @@ final class RandomMockProvider implements PaymentProvider
         if ($existing !== null) {
             $this->store->recordCall($idempotencyKey);
 
-            return MockProviderStore::resultFor($existing->refresh());
+            return $this->store->resultFor($existing->refresh());
         }
 
         $outcome = $this->roll();
@@ -72,7 +73,7 @@ final class RandomMockProvider implements PaymentProvider
             throw ProviderTimeoutException::forKey($idempotencyKey);
         }
 
-        return MockProviderStore::resultFor($transfer);
+        return $this->store->resultFor($transfer);
     }
 
     public function getStatus(string $idempotencyKey): TransferResult

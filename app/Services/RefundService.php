@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Enums\RefundType;
 use App\Models\Refund;
+use App\Services\Contracts\RefundServiceContract;
 use Carbon\CarbonImmutable;
 
 /**
@@ -21,7 +22,7 @@ use Carbon\CarbonImmutable;
  * and for the same reason: a read cannot see an uncommitted write, so the
  * index has to be the thing that decides.
  */
-final class RefundService
+final class RefundService implements RefundServiceContract
 {
     /**
      * The refund already on file for this term, if there is one.

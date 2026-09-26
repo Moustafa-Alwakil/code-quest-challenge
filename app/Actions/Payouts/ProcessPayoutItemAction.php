@@ -9,8 +9,8 @@ use App\Enums\PayoutItemStatus;
 use App\Enums\TransferStatus;
 use App\Exceptions\ProviderTimeoutException;
 use App\Exceptions\ProviderUnavailableException;
+use App\Services\Contracts\PayoutItemServiceContract;
 use App\Services\PaymentProvider;
-use App\Services\PayoutItemService;
 use App\Support\Payouts\PayoutItemSnapshot;
 use App\Support\Payouts\TransferResult;
 use Carbon\CarbonImmutable;
@@ -42,7 +42,7 @@ use Carbon\CarbonImmutable;
 final class ProcessPayoutItemAction
 {
     public function __construct(
-        private PayoutItemService $payoutItems,
+        private PayoutItemServiceContract $payoutItems,
         private PaymentProvider $provider,
         private SettlePayoutItemAction $settlePayoutItem,
         private ReversePayoutItemAction $reversePayoutItem,

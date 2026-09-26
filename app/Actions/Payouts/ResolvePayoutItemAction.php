@@ -7,7 +7,7 @@ namespace App\Actions\Payouts;
 use App\DTOs\Payouts\ResolvePayoutItemData;
 use App\Enums\PayoutAttemptOperation;
 use App\Enums\PayoutItemStatus;
-use App\Services\PayoutItemService;
+use App\Services\Contracts\PayoutItemServiceContract;
 use App\Support\Payouts\PayoutItemSnapshot;
 use InvalidArgumentException;
 
@@ -34,7 +34,7 @@ use InvalidArgumentException;
 final class ResolvePayoutItemAction
 {
     public function __construct(
-        private PayoutItemService $payoutItems,
+        private PayoutItemServiceContract $payoutItems,
         private SettlePayoutItemAction $settlePayoutItem,
         private ReversePayoutItemAction $reversePayoutItem,
     ) {}
@@ -83,13 +83,13 @@ final class ResolvePayoutItemAction
                 $item,
                 $data->providerReference,
                 $data->resolvedAt,
-                from: PayoutItemService::UNDER_REVIEW,
+                from: PayoutItemServiceContract::UNDER_REVIEW,
             )
             : ($this->reversePayoutItem)(
                 $item,
                 $data->reason,
                 $data->resolvedAt,
-                from: PayoutItemService::UNDER_REVIEW,
+                from: PayoutItemServiceContract::UNDER_REVIEW,
             );
     }
 }

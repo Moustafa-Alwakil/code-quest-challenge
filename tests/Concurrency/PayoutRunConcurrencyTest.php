@@ -12,7 +12,7 @@ use App\Models\PayoutItem;
 use App\Models\PayoutRun;
 use App\Models\Plan;
 use App\Models\User;
-use App\Services\PayoutRunService;
+use App\Services\Contracts\PayoutRunServiceContract;
 use App\Support\Payouts\ReservationOutcome;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
@@ -66,7 +66,7 @@ function raceablePayout(): array
 
     Artisan::call('ledger:accrue', ['--sync' => true]);
 
-    $runs = app(PayoutRunService::class);
+    $runs = app(PayoutRunServiceContract::class);
     $runs->createIfAbsent('payout:race', CarbonImmutable::now(), CarbonImmutable::now(), 'EGP');
 
     $run = $runs->findByKey('payout:race');
@@ -156,7 +156,7 @@ it('lets the loser reserve when the winning session rolls back', function (): vo
 });
 
 it('opens one run when two sessions race the same key', function (): void {
-    $runs = app(PayoutRunService::class);
+    $runs = app(PayoutRunServiceContract::class);
     $now = CarbonImmutable::now();
 
     $a = Interleaved::session(Interleaved::SESSION_A);

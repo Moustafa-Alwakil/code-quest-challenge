@@ -8,10 +8,10 @@ use App\DTOs\Subscriptions\SubscribeStudentData;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
 use App\Exceptions\PaymentMismatchException;
-use App\Services\AccrualService;
-use App\Services\LedgerService;
-use App\Services\PlanService;
-use App\Services\SubscriptionService;
+use App\Services\Contracts\AccrualServiceContract;
+use App\Services\Contracts\LedgerServiceContract;
+use App\Services\Contracts\PlanServiceContract;
+use App\Services\Contracts\SubscriptionServiceContract;
 use App\Support\Accrual\AccrualSchedule;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
@@ -40,10 +40,10 @@ use Illuminate\Support\Facades\DB;
 final class SubscribeStudentAction
 {
     public function __construct(
-        private PlanService $plans,
-        private SubscriptionService $subscriptions,
-        private AccrualService $accrual,
-        private LedgerService $ledger,
+        private PlanServiceContract $plans,
+        private SubscriptionServiceContract $subscriptions,
+        private AccrualServiceContract $accrual,
+        private LedgerServiceContract $ledger,
     ) {}
 
     /**

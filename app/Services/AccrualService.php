@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Enums\AccrualPeriodStatus;
 use App\Models\AccrualPeriod;
+use App\Services\Contracts\AccrualServiceContract;
 use App\Support\Accrual\AccrualSchedule;
 use App\Support\Accrual\PeriodForRecognition;
 use App\Support\Accrual\SchedulePeriod;
@@ -26,10 +27,8 @@ use UnexpectedValueException;
  * `pool_minor` and `platform_minor` are deliberately left out of the insert.
  * They are null until F05 recognizes the period.
  */
-final class AccrualService
+final class AccrualService implements AccrualServiceContract
 {
-    private const DEFAULT_CHUNK_SIZE = 1000;
-
     /**
      * One multi-row `insertOrIgnore`, not a chunk loop: a term is at most
      * `AccrualSchedule::MAX_INTERVAL_MONTHS` periods, so a second chunk is a

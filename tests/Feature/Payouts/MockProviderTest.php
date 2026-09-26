@@ -6,7 +6,7 @@ use App\Enums\TransferStatus;
 use App\Exceptions\ProviderTimeoutException;
 use App\Exceptions\ProviderUnavailableException;
 use App\Models\MockProviderTransfer;
-use App\Services\MockProviderStore;
+use App\Services\Contracts\MockProviderStoreContract;
 use App\Services\PaymentProvider;
 use App\Services\RandomMockProvider;
 use App\Services\ScriptedMockProvider;
@@ -112,7 +112,7 @@ it('dedups in the random provider too, so the demo is safe to re-run', function 
     $this->travelTo(CarbonImmutable::parse('2026-09-15 09:00:00'));
 
     $random = new RandomMockProvider(
-        app(MockProviderStore::class),
+        app(MockProviderStoreContract::class),
         ['success' => 100, 'permanent_failure' => 0, 'timeout_after_success' => 0, 'delayed_confirmation' => 0],
         2,
     );
@@ -121,12 +121,12 @@ it('dedups in the random provider too, so the demo is safe to re-run', function 
     $second = $random->transfer('key-random-1', 'acct_1', 40_000, 'EGP');
 
     expect($first->providerReference)->toBe($second->providerReference)
-        ->and(app(MockProviderStore::class)->transferCount('key-random-1'))->toBe(1);
+        ->and(app(MockProviderStoreContract::class)->transferCount('key-random-1'))->toBe(1);
 });
 
 it('rejects outcome weights that do not sum to one hundred', function (): void {
     $random = new RandomMockProvider(
-        app(MockProviderStore::class),
+        app(MockProviderStoreContract::class),
         ['success' => 50, 'permanent_failure' => 0, 'timeout_after_success' => 0, 'delayed_confirmation' => 0],
         2,
     );

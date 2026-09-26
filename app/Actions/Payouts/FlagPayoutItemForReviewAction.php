@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Payouts;
 
-use App\Services\PayoutItemService;
+use App\Services\Contracts\PayoutItemServiceContract;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\DB;
 final class FlagPayoutItemForReviewAction
 {
     public function __construct(
-        private PayoutItemService $payoutItems,
+        private PayoutItemServiceContract $payoutItems,
     ) {}
 
     /**

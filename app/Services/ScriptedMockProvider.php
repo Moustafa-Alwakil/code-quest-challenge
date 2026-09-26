@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Enums\TransferStatus;
 use App\Exceptions\ProviderTimeoutException;
 use App\Exceptions\ProviderUnavailableException;
+use App\Services\Contracts\MockProviderStoreContract;
 use App\Support\Payouts\TransferResult;
 use Illuminate\Support\Facades\DB;
 use LogicException;
@@ -55,7 +56,7 @@ final class ScriptedMockProvider implements PaymentProvider
     private readonly int $baselineTransactionLevel;
 
     public function __construct(
-        private MockProviderStore $store,
+        private MockProviderStoreContract $store,
     ) {
         $this->baselineTransactionLevel = DB::transactionLevel();
     }
@@ -96,7 +97,7 @@ final class ScriptedMockProvider implements PaymentProvider
         if ($existing !== null) {
             $this->store->recordCall($idempotencyKey);
 
-            return MockProviderStore::resultFor($existing->refresh());
+            return $this->store->resultFor($existing->refresh());
         }
 
         $outcome = array_shift($this->script) ?? self::OUTCOME_SUCCESS;
@@ -135,7 +136,7 @@ final class ScriptedMockProvider implements PaymentProvider
             throw ProviderTimeoutException::forKey($idempotencyKey);
         }
 
-        return MockProviderStore::resultFor($transfer);
+        return $this->store->resultFor($transfer);
     }
 
     public function getStatus(string $idempotencyKey): TransferResult

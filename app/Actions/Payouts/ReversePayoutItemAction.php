@@ -7,8 +7,8 @@ namespace App\Actions\Payouts;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
 use App\Enums\PayoutItemStatus;
-use App\Services\LedgerService;
-use App\Services\PayoutItemService;
+use App\Services\Contracts\LedgerServiceContract;
+use App\Services\Contracts\PayoutItemServiceContract;
 use App\Support\Ledger\BalanceDelta;
 use App\Support\Ledger\LedgerLeg;
 use App\Support\Ledger\LedgerTransaction;
@@ -32,8 +32,8 @@ use Illuminate\Support\Facades\DB;
 final class ReversePayoutItemAction
 {
     public function __construct(
-        private PayoutItemService $payoutItems,
-        private LedgerService $ledger,
+        private PayoutItemServiceContract $payoutItems,
+        private LedgerServiceContract $ledger,
     ) {}
 
     /**
@@ -45,7 +45,7 @@ final class ReversePayoutItemAction
         PayoutItemSnapshot $item,
         string $failureCode,
         CarbonImmutable $settledAt,
-        array $from = PayoutItemService::AWAITING_OUTCOME,
+        array $from = PayoutItemServiceContract::AWAITING_OUTCOME,
     ): bool {
         return DB::transaction(function () use ($item, $failureCode, $settledAt, $from): bool {
             $moved = $this->payoutItems->settle(

@@ -6,7 +6,7 @@ namespace App\Actions\Accrual;
 
 use App\DTOs\Accrual\AccrueRevenueData;
 use App\Jobs\AccruePeriodsChunkJob;
-use App\Services\AccrualService;
+use App\Services\Contracts\AccrualServiceContract;
 use App\Support\Accrual\AccrualRunSummary;
 use Illuminate\Support\Facades\Bus;
 
@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Bus;
 final class AccrueRevenueAction
 {
     public function __construct(
-        private AccrualService $accrual,
+        private AccrualServiceContract $accrual,
         private RecognizeAccrualPeriodAction $recognizeAccrualPeriod,
         private ReleaseMaturedEarningsAction $releaseMaturedEarnings,
     ) {}

@@ -14,7 +14,7 @@ use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Services\AccrualService;
+use App\Services\Contracts\AccrualServiceContract;
 use App\Support\Accrual\AccrualSchedule;
 use App\Support\Money;
 use App\Support\Subscriptions\SubscriptionOutcome;
@@ -254,7 +254,7 @@ it('writes no period and issues no insert when the same schedule is applied twic
 
     $before = AccrualPeriod::query()->orderBy('sequence')->get(['id', 'sequence', 'period_start', 'days', 'gross_minor', 'status'])->toArray();
 
-    $written = app(AccrualService::class)->scheduleFor($outcome->subscriptionId, $schedule);
+    $written = app(AccrualServiceContract::class)->scheduleFor($outcome->subscriptionId, $schedule);
 
     expect($written)->toBe(0, 'Re-running the scheduler must be a no-op.')
         ->and(AccrualPeriod::query()->count())->toBe(12)
@@ -276,7 +276,7 @@ it('refuses to duplicate a schedule even when the periods are re-derived at diff
         Money::of(400_000, 'EGP'),
     );
 
-    expect(app(AccrualService::class)->scheduleFor($outcome->subscriptionId, $repriced))->toBe(0)
+    expect(app(AccrualServiceContract::class)->scheduleFor($outcome->subscriptionId, $repriced))->toBe(0)
         ->and((int) AccrualPeriod::query()->sum('gross_minor'))->toBe(300_000)
         ->and(AccrualPeriod::query()->count())->toBe(12);
 });

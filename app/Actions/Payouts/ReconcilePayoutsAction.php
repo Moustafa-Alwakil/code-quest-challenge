@@ -7,7 +7,7 @@ namespace App\Actions\Payouts;
 use App\DTOs\Payouts\ReconcilePayoutsData;
 use App\Jobs\ProcessPayoutItemJob;
 use App\Jobs\ReconcilePayoutItemJob;
-use App\Services\PayoutItemService;
+use App\Services\Contracts\PayoutItemServiceContract;
 use App\Support\Payouts\ReconciliationSchedule;
 use App\Support\Payouts\ReconciliationSummary;
 
@@ -32,7 +32,7 @@ use App\Support\Payouts\ReconciliationSummary;
 final class ReconcilePayoutsAction
 {
     public function __construct(
-        private PayoutItemService $payoutItems,
+        private PayoutItemServiceContract $payoutItems,
         private ReconcilePayoutItemAction $reconcilePayoutItem,
         private ProcessPayoutItemAction $processPayoutItem,
     ) {}

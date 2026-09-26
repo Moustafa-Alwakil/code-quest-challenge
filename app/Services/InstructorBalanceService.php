@@ -8,7 +8,10 @@ use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
 use App\Models\InstructorBalance;
 use App\Models\LedgerEntry;
+use App\Services\Contracts\EarningAllocationServiceContract;
+use App\Services\Contracts\InstructorBalanceServiceContract;
 use App\Support\Ledger\BalanceDelta;
+use App\Support\Ledger\BalanceTotals;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\LazyCollection;
 
@@ -20,13 +23,8 @@ use Illuminate\Support\LazyCollection;
  * balance into PHP, changes it and saves it back: that pattern silently drops a
  * concurrent posting, and at this layer a dropped posting is money.
  */
-final class InstructorBalanceService
+final class InstructorBalanceService implements InstructorBalanceServiceContract
 {
-    /**
-     * Rows are created on first posting, so a run that only reads may find none.
-     */
-    private const DEFAULT_CHUNK_SIZE = 1000;
-
     /**
      * The hold is allocation state, not a ledger fact (R2), so the one snapshot
      * field the ledger cannot account for is sourced from the allocations
@@ -35,26 +33,8 @@ final class InstructorBalanceService
      * transaction (R18).
      */
     public function __construct(
-        private EarningAllocationService $allocations,
+        private EarningAllocationServiceContract $allocations,
     ) {}
-
-    /**
-     * What the ledger says about an instructor it has never mentioned.
-     *
-     * @return array{earned: int, clawed_back: int, held: int, available: int, reserved: int, paid: int, currencies: list<string>}
-     */
-    public static function zeroTotals(): array
-    {
-        return [
-            'earned' => 0,
-            'clawed_back' => 0,
-            'held' => 0,
-            'available' => 0,
-            'reserved' => 0,
-            'paid' => 0,
-            'currencies' => [],
-        ];
-    }
 
     /**
      * Folds the deltas of one posting into the snapshot.
@@ -171,7 +151,7 @@ final class InstructorBalanceService
 
                 $lastId = $entry->id;
 
-                $totals[$instructor] ??= self::zeroTotals();
+                $totals[$instructor] ??= BalanceTotals::zero();
                 $payableOwed[$instructor] ??= 0;
                 $currencies[$instructor][$entry->currency] = true;
 
@@ -203,7 +183,7 @@ final class InstructorBalanceService
          * this check is for, so the row is folded in rather than skipped.
          */
         foreach ($this->allocations->heldTotals($instructorId, $chunkSize) as $instructor => $heldMinor) {
-            $totals[$instructor] ??= self::zeroTotals();
+            $totals[$instructor] ??= BalanceTotals::zero();
             $payableOwed[$instructor] ??= 0;
             $currencies[$instructor] ??= [];
             $totals[$instructor]['held'] = $heldMinor;
