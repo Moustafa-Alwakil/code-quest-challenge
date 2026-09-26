@@ -164,6 +164,16 @@ consequences it leaves implicit.
 | R37 | `refunds:issue --external-ref=` is **required**, not optional as its listing among the options suggests. A blank one is rejected at the DTO | F09 | A refund with no gateway id has no idempotency key, and generating one would be inventing the very fact the row exists to record (R25). UNIQUE `external_ref` would still hold, but only against other refunds that happened to carry a reference — the guarantee would quietly stop applying to precisely the calls that most need it |
 | R38 | A pro-rata refund recognizes the truncated period through F05's action, and therefore inherits F02's late-data policy: engagement not yet rolled up for that period is not counted, and a period with none recognizes entirely to the platform under D-3 | F02, F05, F09, F13 | The alternative — a refund waiting for, or triggering, an engagement rollup — makes a refund depend on a batch job, which is worse for both the student and the instructor. The consequence is small in practice (the straddled period is days old at most) but it is a real one, and it is the kind of thing that should be in the written limitations rather than discovered from the code |
 
+### Admin panel refinements (F10 implementation)
+
+Recorded when F10 was built. R39 extends R23's admission by one namespace; R40 is a testing trap
+worth naming.
+
+| # | Refinement | Where | Why |
+|---|---|---|---|
+| R39 | `App\Filament\Admin\Resources` is admitted to the `only services touch eloquent` arch test, on R23's reasoning: a resource *is* a model's read-only admin surface and Filament binds the two by class name. Two narrower rules are added in exchange — `App\Filament` may not use `DB`, `App\Models\LedgerEntry` or `App\Models\EarningAllocation`, and may not use `App\Services` at all | F10, F12; `.ai/rules/filament.md` | Filament is a model-driven framework and `protected static ?string $model` is not optional; the alternative was passing the class as a string to dodge a test, which is worse than recording the decision. What the original rule protects is untouched: the panel still cannot aggregate the ledger at request time, which is the thing that would quietly turn the screen into a second opinion about the money instead of a window onto the snapshot. Nothing in `App\Actions` or `App\Console\Commands` is admitted, and an operator action that moved money would still have to go through an Action with a DTO |
+| R40 | Filament's `assertTableColumnStateSet()` reads the record **handed to it**, not the row the table query produced. Assertions about joined or sub-selected columns go against `Resource::getEloquentQuery()` directly, and the rendered figures are asserted with `assertSee()` | F10, F12 | A factory-made `Instructor` has no `held_minor` attribute, so the helper falls through to the column's `default(0)` and the assertion passes by agreeing with zero — silently, and for every balance that happens to be zero as well. This cost a debugging round on F10's first green-looking run, and every later screen reading a joined snapshot will meet it again |
+
 ## Definition of done — every feature
 
 - [ ] Migrations include every constraint the feature lists

@@ -10,6 +10,7 @@ use Database\Factories\PayoutItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * What one instructor is owed by one run, and how far sending it has got
@@ -71,6 +72,16 @@ final class PayoutItem extends Model
     public function instructor(): BelongsTo
     {
         return $this->belongsTo(Instructor::class);
+    }
+
+    /**
+     * Every interaction with the provider about this item, oldest first (F07).
+     *
+     * @return HasMany<PayoutAttempt, $this>
+     */
+    public function attempts(): HasMany
+    {
+        return $this->hasMany(PayoutAttempt::class);
     }
 
     /**

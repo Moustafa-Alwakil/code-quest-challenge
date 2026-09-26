@@ -133,13 +133,52 @@ it('has no job whose constructor takes anything but scalars', function (): void 
 
 /**
  * A custom Eloquent builder is the model's own query surface, so it names its
- * model by necessity — `App\Builders` is admitted for that reason alone (R23),
- * and the `QueryBuilder` suffix keeps it from reading as a use-case layer.
- * Nothing in App\Actions, App\Livewire or App\Console\Commands is admitted.
+ * model by necessity — `App\Builders` is admitted for that reason alone (R23).
+ * `App\Filament\Admin\Resources` is admitted on the same reasoning (R39): a
+ * resource *is* a model's read-only admin surface, and Filament binds one to
+ * the other by class name.
+ *
+ * Neither admission weakens what the rule protects. The ledger is guarded
+ * separately, below, and nothing in App\Actions or App\Console\Commands is
+ * admitted at all.
  */
 arch('only services touch eloquent')
     ->expect('App\Models')
-    ->toOnlyBeUsedIn(['App\Services', 'App\Models', 'App\Builders', 'Database']);
+    ->toOnlyBeUsedIn([
+        'App\Services',
+        'App\Models',
+        'App\Builders',
+        'App\Filament\Admin\Resources',
+        'Database',
+    ]);
+
+/**
+ * The admin panel observes the ledger and never writes to it, and never
+ * aggregates it at request time either.
+ *
+ * `LedgerEntry` is named explicitly because the temptation is specific: a
+ * SUM() over an instructor's entries would render the same numbers the snapshot
+ * holds, and would quietly make the screen a second opinion about the money
+ * rather than a window onto the first. The relation manager that *displays*
+ * entries reaches them through a relationship on the model, by name, so it
+ * needs no import.
+ */
+arch('presentation does not touch the ledger')
+    ->expect('App\Filament')
+    ->not->toUse([
+        'Illuminate\Support\Facades\DB',
+        'App\Models\LedgerEntry',
+        'App\Models\EarningAllocation',
+    ]);
+
+/**
+ * An operator action that moved money would have to go through an Action with
+ * the same DTO contract as everything else. None exists yet, and this is what
+ * makes adding one a deliberate act rather than an afternoon's convenience.
+ */
+arch('the admin panel does not reach past actions')
+    ->expect('App\Filament')
+    ->not->toUse(['App\Services']);
 
 /**
  * A command parses options into a DTO and invokes an Action. Reaching past that
