@@ -145,6 +145,14 @@ Recorded when F07 was built. R34 is a testing-infrastructure decision F08 inheri
 |---|---|---|---|
 | R34 | `ScriptedMockProvider` enforces the §8.2 ordering rule against the transaction depth it was **constructed at**, not against zero: it records `DB::transactionLevel()` in its constructor and refuses any `transfer()` above it. F12's "no DB transaction is open during `transfer`" check is therefore "no transaction *we opened* is open" | F07, F08; `docs/features/12-testing-and-invariants.md` | `RefreshDatabase` holds one transaction open for the whole test, so a literal `level === 0` assertion fails every feature test and proves nothing — while deleting the assertion loses the only automated guard on the rule that keeps a row lock from being pinned for a provider's entire timeout. The baseline is 0 in production and 1 under `RefreshDatabase`, and a genuine violation is baseline + 1 in both. The one fragility is real and worth stating: if the singleton were first resolved *inside* a transaction, that transaction becomes its baseline and the guard is neutered. Every production path resolves it from a job or a command, outside one; `MockProviderTest` resolves it explicitly before opening a transaction, with a comment saying why |
 
+### Reconciliation refinements (F08 implementation)
+
+Recorded when F08 was built. R35 reverses, for one column, the choice R28 made for another.
+
+| # | Refinement | Where | Why |
+|---|---|---|---|
+| R35 | `payout_items.created_at` is stamped by the application (`CarbonImmutable::now()` in `PayoutRunService::createReservedItem()`), not left to the column's `useCurrent()` default. A timestamp a money decision is **measured from** is set by the application; one that only **evidences** a write stays with MySQL (R28) | F06, F08 | F08's stranded sweep asks "has this item sat reserved for half an hour", which compares an application instant against this column. With `useCurrent()` those are two different clocks deciding one money question — and under `travelTo` they diverge by whatever the test travelled, so the sweep could not be tested at all. R28's reasoning is untouched and still right for `accrual_periods`: there the timestamps prove *that* a write happened ("a replay touched no period" is an unchanged `updated_at`), and the database is the correct authority for that. The distinction is measured-from versus evidence-of, and the column keeps its default for any row written outside that method |
+
 ## Definition of done — every feature
 
 - [ ] Migrations include every constraint the feature lists
