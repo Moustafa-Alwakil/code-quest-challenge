@@ -2,20 +2,16 @@
 
 declare(strict_types=1);
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
 
 /*
  * Cosmetic housekeeping, not a money job (F04): terms that ended overnight are
  * marked expired. Nothing financial depends on it running, which is why it needs
  * no overlap guard — the conditional UPDATE behind it is idempotent.
  */
-Schedule::command('subscriptions:expire')->dailyAt('00:10');
+Schedule::command('subscriptions:expire')
+    ->dailyAt('00:10')
+    ->onOneServer();
 
 /*
  * The money job (F05): every period whose term closed overnight becomes
@@ -28,7 +24,8 @@ Schedule::command('subscriptions:expire')->dailyAt('00:10');
  * recognizes everything still `scheduled`, including yesterday's. It is a
  * reporting delay, not lost money.
  */
-Schedule::command('ledger:accrue')->dailyAt('00:20');
+Schedule::command('ledger:accrue')
+    ->dailyAt('00:20');
 
 /*
  * Payouts (F06), monthly on the 1st. The default run key is `payout:YYYY-MM`,
@@ -56,4 +53,5 @@ Schedule::command('payouts:run')
  */
 Schedule::command('payouts:reconcile')
     ->everyFiveMinutes()
-    ->withoutOverlapping();
+    ->withoutOverlapping()
+    ->onOneServer();
