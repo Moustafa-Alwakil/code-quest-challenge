@@ -1,7 +1,7 @@
 # AI Development Workflow
 
 > How this repository is built with AI assistance. Set up on **Day 0**, before `PLAN.md` §16 Day 1.
-> This is the raw material for `docs/AI_USAGE.md` (F13) and the AI-transparency segment of the video.
+> This is the raw material for `docs/AI_USAGE.md` (F12) and the AI-transparency segment of the video.
 
 The brief allows AI and requires disclosure, and warns that the review will ask the candidate to
 explain and *modify the implementation live*. So the workflow is part of the submission, not a
@@ -48,7 +48,7 @@ its own convention.
 
 **Why the entry point is generalized.** The brief for this workflow described the chain as starting
 at Livewire. But roughly 65% of the grade enters the system through Artisan commands and queued
-jobs, and the only genuinely Livewire feature (F11) was later withdrawn entirely (R25). A
+jobs, and the only genuinely Livewire feature — the student flow — was later withdrawn entirely (R25). A
 Livewire-only rule would have governed the least important code in the repository. Generalizing it
 covers 100% of the application while leaving Livewire its own layer of guidance on top.
 
@@ -171,7 +171,7 @@ question with the answer already attached, rather than deciding case by case how
 Rules and skills are advisory. An agent under pressure can ignore both, and a reviewer cannot
 verify a claim about guidance.
 
-`tests/Feature/ArchTest.php` (specified in `docs/features/12-testing-and-invariants.md`) asserts:
+`tests/Feature/ArchTest.php` (specified in `docs/features/11-testing-and-invariants.md`) asserts:
 Actions are final, suffixed and invokable, and do not query; DTOs are `final readonly` and free of
 `Illuminate`; `App\Models` is used only inside `App\Services`; entry points do not reach past
 Actions into Services; `App\Support` does not use `Illuminate`; jobs implement `ShouldQueue`.

@@ -301,6 +301,46 @@ final class AccrualService
     }
 
     /**
+     * Σ gross per subscription, in total and for the cancelled periods alone
+     * (verify check 7, invariant I8).
+     *
+     * Both numbers are needed because a refund changes the schedule in two
+     * different ways: cancelling a period leaves its gross in the table, while
+     * truncating one lowers it. Only the pair can tell those apart.
+     *
+     * @param  list<int>                                               $subscriptionIds
+     * @return array{all: array<int, int>, cancelled: array<int, int>}
+     */
+    public function grossTotalsFor(array $subscriptionIds): array
+    {
+        if ($subscriptionIds === []) {
+            return ['all' => [], 'cancelled' => []];
+        }
+
+        $all = [];
+        $cancelled = [];
+
+        $rows = AccrualPeriod::query()
+            ->selectRaw('subscription_id, status, sum(gross_minor) as gross_minor')
+            ->whereIn('subscription_id', $subscriptionIds)
+            ->groupBy('subscription_id', 'status')
+            ->get();
+
+        foreach ($rows as $row) {
+            $id = self::asInt($row->getAttribute('subscription_id'));
+            $gross = self::asInt($row->getAttribute('gross_minor'));
+
+            $all[$id] = ($all[$id] ?? 0) + $gross;
+
+            if ($row->status === AccrualPeriodStatus::CANCELLED) {
+                $cancelled[$id] = ($cancelled[$id] ?? 0) + $gross;
+            }
+        }
+
+        return ['all' => $all, 'cancelled' => $cancelled];
+    }
+
+    /**
      * Σ gross of the periods each of these subscriptions has not yet delivered
      * — everything still `scheduled` (verify check 5).
      *

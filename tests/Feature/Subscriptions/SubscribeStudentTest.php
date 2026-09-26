@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Actions\Subscriptions\SubscribeStudentAction;
-use App\DTOs\Subscriptions\SubscribeStudentData;
 use App\Enums\AccrualPeriodStatus;
 use App\Enums\LedgerAccountType;
 use App\Enums\LedgerEntryType;
@@ -16,7 +14,6 @@ use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Support\Subscriptions\SubscriptionOutcome;
 use Carbon\CarbonImmutable;
 
 /*
@@ -35,43 +32,6 @@ use Carbon\CarbonImmutable;
 afterEach(function (): void {
     assertLedgerBalanced();
 });
-
-/**
- * The capture moment used throughout: 23:00 on a month end, in a leap year.
- *
- * Both halves matter — the time proves a purchase late in the day still gets
- * whole days, and Jan 31 is the date a chained schedule gets wrong (R10).
- */
-function capturedAt(): CarbonImmutable
-{
-    return CarbonImmutable::parse('2024-01-31 23:00:00');
-}
-
-function recordCapturedPayment(
-    User $user,
-    Plan $plan,
-    string $externalRef = 'ch_live_0001',
-    ?int $amountMinor = null,
-    ?string $currency = null,
-    ?CarbonImmutable $capturedAt = null,
-): SubscriptionOutcome {
-    return app(SubscribeStudentAction::class)(SubscribeStudentData::forCapturedPayment(
-        userId: $user->id,
-        planId: $plan->id,
-        externalRef: $externalRef,
-        amountMinor: $amountMinor ?? $plan->price_minor,
-        currency: $currency ?? $plan->currency,
-        capturedAt: $capturedAt ?? capturedAt(),
-    ));
-}
-
-function ledgerSumFor(LedgerAccountType $accountType, int $accountId): int
-{
-    return (int) LedgerEntry::query()
-        ->where('account_type', $accountType)
-        ->where('account_id', $accountId)
-        ->sum('amount_minor');
-}
 
 it('records the term, the payment, the liability and the schedule', function (): void {
     $user = User::factory()->create();

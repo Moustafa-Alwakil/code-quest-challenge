@@ -200,6 +200,27 @@ final class SubscriptionService
     }
 
     /**
+     * The price each of these terms was sold at, snapshotted at purchase (F04).
+     *
+     * @param  list<int>       $subscriptionIds
+     * @return array<int, int>
+     */
+    public function pricesFor(array $subscriptionIds): array
+    {
+        if ($subscriptionIds === []) {
+            return [];
+        }
+
+        /** @var array<int, int> $prices */
+        $prices = Subscription::query()
+            ->whereIn('id', $subscriptionIds)
+            ->pluck('price_minor', 'id')
+            ->all();
+
+        return $prices;
+    }
+
+    /**
      * The next page of subscription ids, for a verification run that has to
      * visit every term.
      *

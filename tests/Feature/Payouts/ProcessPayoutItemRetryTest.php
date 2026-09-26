@@ -49,11 +49,6 @@ function reservedItemFor(string $externalRef): PayoutItem
     return PayoutItem::query()->firstOrFail();
 }
 
-function processItem(int $payoutItemId): PayoutItemStatus
-{
-    return app(ProcessPayoutItemAction::class)($payoutItemId);
-}
-
 it('moves the money once when the same job is handled twice', function (): void {
     $this->travelTo(CarbonImmutable::parse('2026-09-15 09:00:00'));
 

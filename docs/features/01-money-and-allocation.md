@@ -25,7 +25,7 @@ Every other feature does money arithmetic through these — never inline.
 | `config/revenue.php` | `instructor_share_bps`, `hold_days`, `minimum_payout_minor`, `zero_engagement_policy`, `currency`, `payout_provider`, provider probabilities. Every policy decision in the plan is a visible dial here. |
 
 The three classes use `Illuminate\Support\Str` and `Number` in preference to native string and
-number functions, like the rest of `app/`. What an arch test does enforce (F12) is that they do no
+number functions, like the rest of `app/`. What an arch test does enforce (F11) is that they do no
 I/O — no database, no config, no clock — which is what keeps them property-testable.
 
 ## Rules

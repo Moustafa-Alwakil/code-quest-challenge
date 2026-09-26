@@ -9,7 +9,7 @@ Boost's **`testing-best-practices`** skill covers test naming, assertion choice,
 data and suite performance. Use it. This skill covers what it cannot know: **how to prove the money
 is right in this system.**
 
-The specification is `docs/features/12-testing-and-invariants.md`. Each feature file also lists its
+The specification is `docs/features/11-testing-and-invariants.md`. Each feature file also lists its
 own acceptance criteria — those are the tests, already written out.
 
 ## The standard

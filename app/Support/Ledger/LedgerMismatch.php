@@ -29,6 +29,10 @@ final readonly class LedgerMismatch
 
     public const CHECK_PERIOD_SPLIT = 'period split';
 
+    public const CHECK_TERM_TOTAL = 'term total';
+
+    public const CHECK_PAYOUT_PAIRING = 'payout pairing';
+
     /**
      * Values are carried as strings because not every snapshot field is a
      * number — `currency` is one too (R21). `deltaMinor` is null exactly when
@@ -135,6 +139,47 @@ final readonly class LedgerMismatch
             'platform + sum(allocations)',
             $grossMinor,
             $platformPlusAllocatedMinor,
+        );
+    }
+
+    /**
+     * Check 7 (I8) — a term's periods, plus whatever was refunded, add back up
+     * to the price the student paid.
+     *
+     * The refund term is what makes this survive F09: truncating a period
+     * lowers Σ gross by exactly the unused part, which is exactly what the
+     * refund gave back. Without it the check would go red on every refunded
+     * subscription and teach nothing.
+     */
+    public static function termTotal(int $subscriptionId, int $priceMinor, int $accountedForMinor): self
+    {
+        return self::ofMinor(
+            self::CHECK_TERM_TOTAL,
+            "subscription {$subscriptionId}",
+            'sum(period gross) + refunded',
+            $priceMinor,
+            $accountedForMinor,
+        );
+    }
+
+    /**
+     * Check 8 (I7, ledger half) — a succeeded payout item has exactly one
+     * `payout_reserved` transaction and exactly one `payout_settled`.
+     *
+     * The other half of I7 — that the provider moved the money once — is not
+     * knowable from here: it lives in the provider's own records, and the suite
+     * asserts it through `ScriptedMockProvider::transferCount()`. What the
+     * ledger can prove is that we only ever *accounted* for one transfer, which
+     * is the half a production verifier could run.
+     */
+    public static function payoutPairing(int $payoutItemId, string $field, int $expected, int $actual): self
+    {
+        return self::ofMinor(
+            self::CHECK_PAYOUT_PAIRING,
+            "payout item {$payoutItemId}",
+            $field,
+            $expected,
+            $actual,
         );
     }
 

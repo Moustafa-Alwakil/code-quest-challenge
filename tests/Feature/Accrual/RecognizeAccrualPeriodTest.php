@@ -10,7 +10,6 @@ use App\Enums\LedgerEntryType;
 use App\Enums\ZeroEngagementPolicy;
 use App\Models\AccrualPeriod;
 use App\Models\EarningAllocation;
-use App\Models\Engagement;
 use App\Models\Instructor;
 use App\Models\InstructorBalance;
 use App\Models\LedgerEntry;
@@ -51,16 +50,6 @@ function recognizeFirstPeriodOf(int $subscriptionId, int $shareBps = 7_000, int 
     ));
 
     return $period->refresh();
-}
-
-function engage(int $subscriptionId, AccrualPeriod $period, Instructor $instructor, int $units): void
-{
-    Engagement::query()->create([
-        'subscription_id' => $subscriptionId,
-        'period_start' => $period->period_start->toDateString(),
-        'instructor_id' => $instructor->id,
-        'units' => $units,
-    ]);
 }
 
 it('splits a period between the platform and the instructors who earned it', function (): void {

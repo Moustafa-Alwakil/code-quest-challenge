@@ -1,4 +1,4 @@
-# F12 — Test Infrastructure, Invariants & Chaos Test
+# F11 — Test Infrastructure, Invariants & Chaos Test
 
 > **Day:** continuous — infrastructure on Day 1, chaos test on Day 5
 > **Depends on:** all · **Plan refs:** §14 · **Required item 5**

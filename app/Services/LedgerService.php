@@ -217,6 +217,41 @@ final class LedgerService
     }
 
     /**
+     * How many legs each of these payout items has, per entry type (verify
+     * check 8, invariant I7).
+     *
+     * A settled payout should have exactly two `payout_reserved` legs and two
+     * `payout_settled` ones — one transaction each. The unique key already
+     * makes a *duplicate* impossible, so what this actually catches is the
+     * absence: an item marked succeeded that nothing ever reserved, or one
+     * whose settlement posting never landed.
+     *
+     * @param  list<int>                      $payoutItemIds
+     * @return array<int, array<string, int>> item id => entry type => leg count
+     */
+    public function payoutLegCounts(array $payoutItemIds): array
+    {
+        if ($payoutItemIds === []) {
+            return [];
+        }
+
+        $counts = [];
+
+        $rows = DB::table('ledger_entries')
+            ->selectRaw('reference_id, entry_type, count(*) as legs')
+            ->where('reference_type', 'payout_item')
+            ->whereIn('reference_id', $payoutItemIds)
+            ->groupBy('reference_id', 'entry_type')
+            ->get();
+
+        foreach ($rows as $row) {
+            $counts[self::asInt($row->reference_id)][self::asString($row->entry_type)] = self::asInt($row->legs);
+        }
+
+        return $counts;
+    }
+
+    /**
      * What each of the given subscriptions is still owed in undelivered time —
      * the balance of its `deferred_revenue` account (R5), for verify check 5.
      *

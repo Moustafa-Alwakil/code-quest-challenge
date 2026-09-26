@@ -47,6 +47,30 @@ final class RefundService
     }
 
     /**
+     * The refunds recorded against these terms, if any (verify check 7).
+     *
+     * @param  list<int>                                        $subscriptionIds
+     * @return array<int, array{type: RefundType, amount: int}>
+     */
+    public function forSubscriptions(array $subscriptionIds): array
+    {
+        if ($subscriptionIds === []) {
+            return [];
+        }
+
+        $refunds = [];
+
+        foreach (Refund::query()->whereIn('subscription_id', $subscriptionIds)->get() as $refund) {
+            $refunds[$refund->subscription_id] = [
+                'type' => $refund->type,
+                'amount' => $refund->amount_minor,
+            ];
+        }
+
+        return $refunds;
+    }
+
+    /**
      * Records the refund. A plain insert, deliberately: a concurrent duplicate
      * must hit the unique index and roll its transaction back rather than being
      * swallowed, or the loser would leave a term with cancelled periods and no

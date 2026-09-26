@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\LedgerEntryType;
+use App\Enums\RefundType;
 use App\Models\InstructorBalance;
 use App\Support\Ledger\LedgerMismatch;
 use App\Support\Ledger\LedgerVerificationResult;
@@ -20,11 +22,13 @@ use App\Support\Ledger\LedgerVerificationResult;
  * meaningful from F05 onward, when `earning_allocations` gives the hold
  * somewhere to be recomputed from (R2, R20).
  *
- * Checks 5 and 6 are the subscription- and period-level statements the
+ * Checks 5 to 8 are the subscription-, period- and payout-level statements the
  * per-instructor checks cannot make: that a delivered term's liability returned
- * to exactly zero, and that a recognized period gave away precisely its gross.
- * Both are skipped under `--instructor=`, like checks 1 and 2, because neither
- * is a fact about one instructor.
+ * to exactly zero, that a recognized period gave away precisely its gross, that
+ * a term's price is still fully accounted for after a refund, and that a
+ * succeeded payout was reserved once and settled once. All four are skipped
+ * under `--instructor=`, like checks 1 and 2, because none is a fact about one
+ * instructor.
  */
 final class LedgerVerificationService
 {
@@ -36,6 +40,8 @@ final class LedgerVerificationService
         private AccrualService $accrual,
         private EarningAllocationService $allocations,
         private SubscriptionService $subscriptions,
+        private RefundService $refunds,
+        private PayoutItemService $payoutItems,
     ) {}
 
     /**
@@ -154,6 +160,22 @@ final class LedgerVerificationService
                     return $this->result($mismatches, $instructorId, $transactionsChecked, $instructorsChecked, true);
                 }
             }
+
+            foreach ($this->termTotalMismatches($chunkSize) as $mismatch) {
+                $mismatches[] = $mismatch;
+
+                if ($failFast) {
+                    return $this->result($mismatches, $instructorId, $transactionsChecked, $instructorsChecked, true);
+                }
+            }
+
+            foreach ($this->payoutPairingMismatches($chunkSize) as $mismatch) {
+                $mismatches[] = $mismatch;
+
+                if ($failFast) {
+                    return $this->result($mismatches, $instructorId, $transactionsChecked, $instructorsChecked, true);
+                }
+            }
         }
 
         return $this->result($mismatches, $instructorId, $transactionsChecked, $instructorsChecked, false);
@@ -218,6 +240,120 @@ final class LedgerVerificationService
             'reserved_minor' => $snapshot->reserved_minor,
             'paid_minor' => $snapshot->paid_minor,
         ];
+    }
+
+    /**
+     * Check 7 (I8) — a term's price is still fully accounted for, refunds
+     * included.
+     *
+     * Freshly scheduled, this is simply `Σ period gross === price`: the
+     * largest-remainder split (D-5) gave every piastre to some period. What
+     * makes it worth a check is what refunds do to it, and the two refund types
+     * do different things:
+     *
+     * - **Cancelling** a period leaves its gross in the table untouched, so the
+     *   sum is unchanged and nothing needs adding back.
+     * - **Truncating** one lowers its gross by the unused days, and that money
+     *   left as part of the refund. The amount removed is exactly
+     *   `refund − Σ cancelled gross`, which is why the refund has to enter the
+     *   identity for a pro-rata term.
+     *
+     * The two sides come from different tables — the schedule and the refunds —
+     * so agreement means the truncation gave back precisely what it removed.
+     *
+     * @return list<LedgerMismatch>
+     */
+    private function termTotalMismatches(int $chunkSize): array
+    {
+        $mismatches = [];
+        $afterId = 0;
+
+        while (true) {
+            $subscriptionIds = $this->subscriptions->idsAfter($afterId, $chunkSize);
+
+            if ($subscriptionIds === []) {
+                return $mismatches;
+            }
+
+            $afterId = $subscriptionIds[count($subscriptionIds) - 1];
+
+            $prices = $this->subscriptions->pricesFor($subscriptionIds);
+            $gross = $this->accrual->grossTotalsFor($subscriptionIds);
+            $refunds = $this->refunds->forSubscriptions($subscriptionIds);
+
+            foreach ($subscriptionIds as $subscriptionId) {
+                /**
+                 * A term with no periods at all was never scheduled, so there
+                 * is no split for this check to have an opinion about — the
+                 * same scoping R30 applies to check 5. It cannot hide a real
+                 * failure: `AccrualSchedule` asserts `Σ gross === price` before
+                 * a row is written and `scheduleFor()` shares the subscription's
+                 * transaction, so a real term without its schedule cannot
+                 * commit. What it does exempt is a factory fixture, which F02
+                 * says has no ledger behind it by design.
+                 */
+                if (! isset($gross['all'][$subscriptionId])) {
+                    continue;
+                }
+
+                $price = $prices[$subscriptionId] ?? 0;
+                $accountedFor = $gross['all'][$subscriptionId];
+
+                $refund = $refunds[$subscriptionId] ?? null;
+
+                if ($refund !== null && $refund['type'] === RefundType::PRORATA) {
+                    $accountedFor += $refund['amount'] - ($gross['cancelled'][$subscriptionId] ?? 0);
+                }
+
+                if ($accountedFor !== $price) {
+                    $mismatches[] = LedgerMismatch::termTotal($subscriptionId, $price, $accountedFor);
+                }
+            }
+        }
+    }
+
+    /**
+     * Check 8 (I7, ledger half) — a succeeded payout was reserved once and
+     * settled once.
+     *
+     * Two legs of each, because every posting here is two-sided. The unique key
+     * already makes a duplicate impossible, so what this catches is an absence:
+     * an item marked succeeded that nothing ever reserved, or whose settlement
+     * never landed — either of which leaves money in `provider_in_transit`
+     * that the snapshot thinks was paid.
+     *
+     * I7's other half, that the provider moved the money exactly once, is not
+     * knowable from the ledger. The chaos test asserts it against the provider's
+     * own records.
+     *
+     * @return list<LedgerMismatch>
+     */
+    private function payoutPairingMismatches(int $chunkSize): array
+    {
+        $mismatches = [];
+        $afterId = 0;
+
+        while (true) {
+            $itemIds = $this->payoutItems->succeededItemIdsAfter($afterId, $chunkSize);
+
+            if ($itemIds === []) {
+                return $mismatches;
+            }
+
+            $afterId = $itemIds[count($itemIds) - 1];
+
+            $counts = $this->ledger->payoutLegCounts($itemIds);
+
+            foreach ($itemIds as $itemId) {
+                foreach ([LedgerEntryType::PAYOUT_RESERVED, LedgerEntryType::PAYOUT_SETTLED] as $entryType) {
+                    $legs = $counts[$itemId][$entryType->value] ?? 0;
+
+                    if ($legs !== 2) {
+                        $mismatches[] = LedgerMismatch::payoutPairing($itemId, $entryType->value.' legs', 2, $legs);
+                    }
+                }
+            }
+        }
     }
 
     /**

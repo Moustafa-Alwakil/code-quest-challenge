@@ -17,6 +17,14 @@
             under test never happens. These use DatabaseTruncation and run in
             the `concurrency` group, registered in tests/Pest.php.
         -->
+        <!--
+            The chaos test: a seeded random walk over the whole system, with
+            every invariant asserted after every step. Its own suite because it
+            is the slowest thing here and the most worth running alone.
+        -->
+        <testsuite name="Chaos">
+            <directory>tests/Chaos</directory>
+        </testsuite>
         <testsuite name="Concurrency">
             <directory>tests/Concurrency</directory>
         </testsuite>

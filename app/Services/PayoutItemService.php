@@ -224,6 +224,26 @@ final class PayoutItemService
     }
 
     /**
+     * The next page of items the provider confirmed (verify check 8).
+     *
+     * @return list<int> ascending
+     */
+    public function succeededItemIdsAfter(int $afterId, int $limit): array
+    {
+        /** @var list<int> $ids */
+        $ids = DB::table('payout_items')
+            ->where('status', PayoutItemStatus::SUCCEEDED->value)
+            ->where('id', '>', $afterId)
+            ->orderBy('id')
+            ->limit($limit)
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => self::asInt($id))
+            ->all();
+
+        return $ids;
+    }
+
+    /**
      * How many times we have already asked this provider about this item.
      *
      * Read from the audit trail rather than kept in a counter column: the

@@ -87,9 +87,7 @@ A fresh agent starts cold. Give it, every time:
 - Concrete `file:line` references already found — never make it re-discover them.
 
 Continue an existing agent with `SendMessage` rather than spawning a second one of the same kind;
-its context is worth more than a clean start. `SendMessage` and `ListAgents` may be deferred tools
-that need loading first — `ToolSearch("select:SendMessage,ListAgents")` — which is not a reason to
-spawn a duplicate instead.
+its context is worth more than a clean start.
 
 ## Every agent, regardless of stage
 

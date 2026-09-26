@@ -25,7 +25,7 @@ pest()->extend(TestCase::class)
     ->in('Feature');
 
 /*
- * Concurrency tests are deliberately *not* transaction-wrapped (R11, F12).
+ * Concurrency tests are deliberately *not* transaction-wrapped (R11, F11).
  * RefreshDatabase holds one transaction open for the whole test, so a second
  * connection could never see the first's rows and the race under test would
  * never happen — the test would pass for the wrong reason. DatabaseTruncation
@@ -35,6 +35,16 @@ pest()->extend(TestCase::class)
     ->use(DatabaseTruncation::class)
     ->group('concurrency')
     ->in('Concurrency');
+
+/*
+ * The chaos test drives the whole system through real entry points, so it needs
+ * the ordinary transactional reset — and its own group, because it is the one
+ * test worth running alone when something is wrong.
+ */
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->group('chaos')
+    ->in('Chaos');
 
 /*
 |--------------------------------------------------------------------------
@@ -102,7 +112,7 @@ function provider(): App\Services\ScriptedMockProvider
 }
 
 /**
- * Runs the `ledger:verify` checks in-process (F12's invariant hook).
+ * Runs the `ledger:verify` checks in-process (F11's invariant hook).
  *
  * Registered in `afterEach` by every money-touching test file, so each of those
  * tests implicitly proves invariants I1-I4 as well as whatever it was written
@@ -146,4 +156,90 @@ function assertLedgerBalanced(): void
         $result->isClean(),
         "The ledger and the balance snapshot disagree:\n".implode("\n", $report),
     );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Shared domain helpers
+|--------------------------------------------------------------------------
+|
+| These live here rather than in whichever test file first needed them, because
+| they are used across every suite and a function defined inside a Feature test
+| is invisible to `--testsuite=Chaos` or `--testsuite=Concurrency` run on their
+| own. That failure mode is quiet and confusing: the suite reports an undefined
+| function from a file that has nothing to do with the problem.
+|
+*/
+
+/**
+ * The capture moment used throughout: 23:00 on a month end, in a leap year.
+ *
+ * Both halves matter — the time proves a purchase late in the day still gets
+ * whole days, and Jan 31 is the date a chained schedule gets wrong (R10).
+ */
+function capturedAt(): Carbon\CarbonImmutable
+{
+    return Carbon\CarbonImmutable::parse('2024-01-31 23:00:00');
+}
+
+/**
+ * A term, through the real entry point — never a factory.
+ *
+ * A factory-made subscription has no payment, no ledger entries and no
+ * schedule, so any test that asserts on balances has to come through here
+ * (F02, Factories).
+ */
+function recordCapturedPayment(
+    App\Models\User $user,
+    App\Models\Plan $plan,
+    string $externalRef = 'ch_live_0001',
+    ?int $amountMinor = null,
+    ?string $currency = null,
+    ?Carbon\CarbonImmutable $capturedAt = null,
+): App\Support\Subscriptions\SubscriptionOutcome {
+    return app(App\Actions\Subscriptions\SubscribeStudentAction::class)(
+        App\DTOs\Subscriptions\SubscribeStudentData::forCapturedPayment(
+            userId: $user->id,
+            planId: $plan->id,
+            externalRef: $externalRef,
+            amountMinor: $amountMinor ?? $plan->price_minor,
+            currency: $currency ?? $plan->currency,
+            capturedAt: $capturedAt ?? capturedAt(),
+        )
+    );
+}
+
+/**
+ * The raw signed sum of one account's entries.
+ *
+ * Signed, not "owed": liabilities are credit-normal, so a payable that owes
+ * 1 000 sums to −1 000. Tests say which they mean.
+ */
+function ledgerSumFor(App\Enums\LedgerAccountType $accountType, int $accountId): int
+{
+    return (int) App\Models\LedgerEntry::query()
+        ->where('account_type', $accountType)
+        ->where('account_id', $accountId)
+        ->sum('amount_minor');
+}
+
+/**
+ * One engagement rollup row: this instructor, this period, these minutes.
+ */
+function engage(int $subscriptionId, App\Models\AccrualPeriod $period, App\Models\Instructor $instructor, int $units): void
+{
+    App\Models\Engagement::query()->create([
+        'subscription_id' => $subscriptionId,
+        'period_start' => $period->period_start->toDateString(),
+        'instructor_id' => $instructor->id,
+        'units' => $units,
+    ]);
+}
+
+/**
+ * Sends one reserved payout, as a worker would.
+ */
+function processItem(int $payoutItemId): App\Enums\PayoutItemStatus
+{
+    return app(App\Actions\Payouts\ProcessPayoutItemAction::class)($payoutItemId);
 }
