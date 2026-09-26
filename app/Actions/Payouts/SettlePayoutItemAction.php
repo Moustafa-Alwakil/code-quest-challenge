@@ -38,16 +38,23 @@ final class SettlePayoutItemAction
     ) {}
 
     /**
-     * @return bool true when this call settled the item; false when it was already settled
+     * @param  list<PayoutItemStatus> $from statuses this may move the item out of;
+     *                                      widened only by `payouts:resolve` (F08)
+     * @return bool                   true when this call settled the item; false when it had already resolved
      */
-    public function __invoke(PayoutItemSnapshot $item, ?string $providerReference, CarbonImmutable $settledAt): bool
-    {
-        return DB::transaction(function () use ($item, $providerReference, $settledAt): bool {
+    public function __invoke(
+        PayoutItemSnapshot $item,
+        ?string $providerReference,
+        CarbonImmutable $settledAt,
+        array $from = PayoutItemService::AWAITING_OUTCOME,
+    ): bool {
+        return DB::transaction(function () use ($item, $providerReference, $settledAt, $from): bool {
             $moved = $this->payoutItems->settle(
                 $item->id,
                 PayoutItemStatus::SUCCEEDED,
                 $settledAt,
                 $providerReference,
+                from: $from,
             );
 
             if (! $moved) {

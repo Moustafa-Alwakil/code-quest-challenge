@@ -17,4 +17,13 @@ enum PayoutAttemptOperation: string
     case TRANSFER = 'transfer';
 
     case STATUS = 'status';
+
+    /**
+     * A person established the outcome and told the system (F08).
+     *
+     * The only operation here that is not a provider call, and the only one
+     * that moves money on a human's word — which is exactly why it is recorded
+     * beside the provider's own answers rather than in a log nobody reads.
+     */
+    case MANUAL = 'manual';
 }

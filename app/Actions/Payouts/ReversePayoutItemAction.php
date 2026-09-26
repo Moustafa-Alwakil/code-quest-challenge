@@ -37,17 +37,24 @@ final class ReversePayoutItemAction
     ) {}
 
     /**
-     * @return bool true when this call reversed the item; false when it was already terminal
+     * @param  list<PayoutItemStatus> $from statuses this may move the item out of;
+     *                                      widened only by `payouts:resolve` (F08)
+     * @return bool                   true when this call reversed the item; false when it had already resolved
      */
-    public function __invoke(PayoutItemSnapshot $item, string $failureCode, CarbonImmutable $settledAt): bool
-    {
-        return DB::transaction(function () use ($item, $failureCode, $settledAt): bool {
+    public function __invoke(
+        PayoutItemSnapshot $item,
+        string $failureCode,
+        CarbonImmutable $settledAt,
+        array $from = PayoutItemService::AWAITING_OUTCOME,
+    ): bool {
+        return DB::transaction(function () use ($item, $failureCode, $settledAt, $from): bool {
             $moved = $this->payoutItems->settle(
                 $item->id,
                 PayoutItemStatus::FAILED,
                 $settledAt,
                 null,
                 $failureCode,
+                from: $from,
             );
 
             if (! $moved) {

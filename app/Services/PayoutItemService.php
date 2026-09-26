@@ -30,6 +30,28 @@ use UnexpectedValueException;
 final class PayoutItemService
 {
     /**
+     * The statuses an item can hold while the provider still owes an answer.
+     *
+     * The default source of every automated settlement: a worker or the
+     * reconciliation sweep may only resolve something it is still waiting on.
+     *
+     * @var list<PayoutItemStatus>
+     */
+    public const AWAITING_OUTCOME = [PayoutItemStatus::SUBMITTED, PayoutItemStatus::UNKNOWN];
+
+    /**
+     * The status only a person can move an item out of (F08).
+     *
+     * Kept separate from `AWAITING_OUTCOME` on purpose: widening the automated
+     * CAS to include `needs_review` would let a retried job quietly resolve an
+     * item a human was asked to look at, which is the one thing parking it
+     * there was supposed to prevent.
+     *
+     * @var list<PayoutItemStatus>
+     */
+    public const UNDER_REVIEW = [PayoutItemStatus::NEEDS_REVIEW];
+
+    /**
      * How long after submitting before reconciliation should start asking.
      */
     private const SUBMITTED_RECHECK_MINUTES = 10;
@@ -98,11 +120,17 @@ final class PayoutItemService
     /**
      * Records a definitive outcome, only from a status that was awaiting one.
      *
-     * Accepts `submitted` and `unknown` and nothing else, so a late provider
-     * response about an item that has already settled changes nothing — it is
-     * written to the audit trail by the caller and dropped here.
+     * Accepts `submitted` and `unknown` by default and nothing else, so a late
+     * provider response about an item that has already settled changes nothing
+     * — it is written to the audit trail by the caller and dropped here.
      *
-     * @return bool true when this call moved the item
+     * `$from` is widened only by `payouts:resolve`, which moves an item out of
+     * `needs_review` on a person's finding. Passing the source explicitly keeps
+     * that a deliberate act at one call site rather than a permanent hole in
+     * the automated path.
+     *
+     * @param  list<PayoutItemStatus> $from
+     * @return bool                   true when this call moved the item
      */
     public function settle(
         int $payoutItemId,
@@ -110,10 +138,14 @@ final class PayoutItemService
         CarbonImmutable $settledAt,
         ?string $providerReference = null,
         ?string $lastError = null,
+        array $from = self::AWAITING_OUTCOME,
     ): bool {
         $moved = DB::table('payout_items')
             ->where('id', $payoutItemId)
-            ->whereIn('status', [PayoutItemStatus::SUBMITTED->value, PayoutItemStatus::UNKNOWN->value])
+            ->whereIn('status', array_map(
+                static fn (PayoutItemStatus $status): string => $status->value,
+                $from,
+            ))
             ->update([
                 'status' => $to->value,
                 'settled_at' => $settledAt,
