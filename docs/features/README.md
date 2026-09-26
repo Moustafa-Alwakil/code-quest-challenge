@@ -153,6 +153,17 @@ Recorded when F08 was built. R35 reverses, for one column, the choice R28 made f
 |---|---|---|---|
 | R35 | `payout_items.created_at` is stamped by the application (`CarbonImmutable::now()` in `PayoutRunService::createReservedItem()`), not left to the column's `useCurrent()` default. A timestamp a money decision is **measured from** is set by the application; one that only **evidences** a write stays with MySQL (R28) | F06, F08 | F08's stranded sweep asks "has this item sat reserved for half an hour", which compares an application instant against this column. With `useCurrent()` those are two different clocks deciding one money question — and under `travelTo` they diverge by whatever the test travelled, so the sweep could not be tested at all. R28's reasoning is untouched and still right for `accrual_periods`: there the timestamps prove *that* a write happened ("a replay touched no period" is an unchanged `updated_at`), and the database is the correct authority for that. The distinction is measured-from versus evidence-of, and the column keeps its default for any row written outside that method |
 
+### Refund refinements (F09 implementation)
+
+Recorded when F09 was built. R36 departs from the feature file's prose; R37 and R38 pin
+consequences it leaves implicit.
+
+| # | Refinement | Where | Why |
+|---|---|---|---|
+| R36 | A clawback sets `earning_allocations.clawed_back_at` on **released** allocations as well as held ones. F09's component list sets it only on the not-yet-released ones | F09, F10 | `clawed_back_at` is the record that an earning was reversed, and "which of this instructor's earnings were taken back" must not return a different answer depending on whether the hold happened to have expired first — F10's screen and any later audit both read that column. Nothing downstream changes: `held` is the sum of allocations with neither timestamp set, so a released row was already outside it, and check 6 counts clawed-back allocations either way. The snapshot split between `held` and `available` is still decided by `released_at`, exactly as F09 specifies |
+| R37 | `refunds:issue --external-ref=` is **required**, not optional as its listing among the options suggests. A blank one is rejected at the DTO | F09 | A refund with no gateway id has no idempotency key, and generating one would be inventing the very fact the row exists to record (R25). UNIQUE `external_ref` would still hold, but only against other refunds that happened to carry a reference — the guarantee would quietly stop applying to precisely the calls that most need it |
+| R38 | A pro-rata refund recognizes the truncated period through F05's action, and therefore inherits F02's late-data policy: engagement not yet rolled up for that period is not counted, and a period with none recognizes entirely to the platform under D-3 | F02, F05, F09, F13 | The alternative — a refund waiting for, or triggering, an engagement rollup — makes a refund depend on a batch job, which is worse for both the student and the instructor. The consequence is small in practice (the straddled period is days old at most) but it is a real one, and it is the kind of thing that should be in the written limitations rather than discovered from the code |
+
 ## Definition of done — every feature
 
 - [ ] Migrations include every constraint the feature lists
