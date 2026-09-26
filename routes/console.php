@@ -29,3 +29,18 @@ Schedule::command('subscriptions:expire')->dailyAt('00:10');
  * reporting delay, not lost money.
  */
 Schedule::command('ledger:accrue')->dailyAt('00:20');
+
+/*
+ * Payouts (F06), monthly on the 1st. The default run key is `payout:YYYY-MM`,
+ * so a manual re-trigger during the month resumes this run rather than opening
+ * a second one.
+ *
+ * Both guards are optimizations, and the suite proves it: `withoutOverlapping`
+ * and `onOneServer` need the shared cache, and if it vanished the UNIQUE run
+ * key, the UNIQUE (run, instructor) pair and reserve-before-send would still
+ * leave exactly one payment per instructor.
+ */
+Schedule::command('payouts:run')
+    ->monthlyOn(1, '03:00')
+    ->withoutOverlapping()
+    ->onOneServer();
