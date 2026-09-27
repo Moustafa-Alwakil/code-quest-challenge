@@ -29,6 +29,18 @@
             <directory>tests/Concurrency</directory>
         </testsuite>
     </testsuites>
+
+    <!--
+        The soak group is the same chaos walk at 5 000 steps rather than 300:
+        ten minutes, not one. F11 budgets the default run in seconds, so it is
+        excluded here, and asking for the soak group on the command line
+        overrides this exclusion.
+    -->
+    <groups>
+        <exclude>
+            <group>soak</group>
+        </exclude>
+    </groups>
     <source>
         <include>
             <directory>app</directory>

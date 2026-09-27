@@ -136,9 +136,8 @@ final class DemoSeeder extends Seeder
      * them by name and a different name every run is a re-recorded take.
      *
      * The fifth is deliberately kept out of every scenario but S5: their whole
-     * lifetime earnings have to stay under the payout minimum for the
-     * carry-forward demo to work, and a single appearance elsewhere would push
-     * them over it.
+     * lifetime earnings have to stay under the payout minimum for the threshold
+     * demo to work, and a single appearance elsewhere would push them over it.
      */
     private function seedInstructors(): void
     {
@@ -266,9 +265,16 @@ final class DemoSeeder extends Seeder
         );
 
         /**
-         * S5 — carry-forward (D-7). Emeka appears here and nowhere else, with a
+         * S5 — the payout minimum. Emeka appears here and nowhere else, with a
          * sliver of one month's engagement, so his lifetime earnings stay below
-         * `minimum_payout_minor` and `payouts:run` keeps skipping him.
+         * `minimum_payout_minor` and `payouts:run` keeps skipping him, carrying
+         * the balance to the next run rather than paying a provider fee to move
+         * small change.
+         *
+         * This is the *threshold* carry-forward, not D-7's. D-7 is about a
+         * clawback driving a balance negative, which needs a refund against
+         * already-recognized earnings — no demo subscription is shaped for it,
+         * and `NegativeBalanceCarryForwardTest` is what proves it instead.
          */
         $this->subscribe(
             student: $this->students[4],

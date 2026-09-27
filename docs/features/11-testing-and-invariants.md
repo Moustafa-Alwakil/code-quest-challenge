@@ -48,7 +48,9 @@ chaos test, the arch tests, and the evidence.
 - **At the end:** drain reconciliation until nothing is `unknown`, then assert per instructor:
   Σ provider transfers = `paid_minor`, and no instructor has two succeeded items in one run.
 - **On failure:** print the seed and the step log so the exact run reproduces.
-- Runs in under ~30s by default. `--group=soak` (N ≈ 5 000) is excluded from the default run.
+- Measured: ~70s standalone for the 300 steps, and the whole default suite is under 70s with
+  MySQL warm. `--group=soak` (N ≈ 5 000, ~10½ minutes) is excluded from the default run by a
+  `<groups><exclude>` block in `phpunit.xml`; naming the group on the command line overrides it.
 
 This is the one test that cannot pass by accident. Show it on camera.
 

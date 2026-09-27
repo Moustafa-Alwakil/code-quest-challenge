@@ -23,9 +23,18 @@ Schedule::command('subscriptions:expire')
  * Missing a night costs nothing and is not a correctness problem: the next run
  * recognizes everything still `scheduled`, including yesterday's. It is a
  * reporting delay, not lost money.
+ *
+ * Both guards are optimizations, exactly as they are on the payout commands
+ * below (D-10). Two concurrent runs would each find the same due periods, and
+ * the status compare-and-swap means only one of them recognizes any given one —
+ * the other's `UPDATE` matches zero rows and it moves on. What the guards buy is
+ * not correctness but work: at scale a run is minutes of recognition, and a
+ * second copy of it re-reads every period the first is already handling.
  */
 Schedule::command('ledger:accrue')
-    ->dailyAt('00:20');
+    ->dailyAt('00:20')
+    ->withoutOverlapping()
+    ->onOneServer();
 
 /*
  * Payouts (F06), monthly on the 1st. The default run key is `payout:YYYY-MM`,

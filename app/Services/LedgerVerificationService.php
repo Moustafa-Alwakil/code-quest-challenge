@@ -26,7 +26,8 @@ use App\Support\Ledger\LedgerVerificationResult;
  * The snapshot exists for O(1) reads, which makes it a cache; a cache nobody
  * checks is a second source of truth waiting to drift. This is the check.
  *
- * Six checks, covering invariants I1-I6. Check 3 covers `currency` as well as
+ * Eight checks, covering invariants I1-I6 plus the ledger half of I7 and I8
+ * (R44, R45). Check 3 covers `currency` as well as
  * the six money columns (R21), and its `held_minor` comparison is only
  * meaningful from F05 onward, when `earning_allocations` gives the hold
  * somewhere to be recomputed from (R2, R20).
